@@ -1,0 +1,94 @@
+:root {
+  --primary-color: #8e24aa;
+  --primary-light: #b085f5;
+  --primary-dark: #5c007a;
+  --secondary-color: #00e676;
+  --secondary-light: #66ffa6;
+  --secondary-dark: #00b248;
+  --background-color: #121212;
+  --background-paper: #1e1e1e;
+  --card-color: #2d2d2d;
+  --text-color: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --success-color: #00c853;
+  --warning-color: #ffab00;
+  --danger-color: #ff3d00;
+  --border-radius: 12px;
+  --box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+  --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --elevation-1: 0 2px 4px rgba(0, 0, 0, 0.5);
+  --elevation-2: 0 4px 8px rgba(0, 0, 0, 0.5);
+  --elevation-3: 0 8px 16px rgba(0, 0, 0, 0.5);
+  --glow: 0 0 10px rgba(142, 36, 170, 0.5);
+  --glow-strong: 0 0 20px rgba(142, 36, 170, 0.8);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  font-family: 'Roboto', 'Segoe UI', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  transition: var(--transition);
+}
+
+a {
+  color: var(--primary-light);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+a:hover {
+  color: var(--primary-color);
+  text-shadow: 0 0 5px rgba(142, 36, 170, 0.5);
+}
+
+button, input[type="submit"] {
+  cursor: pointer;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-dark);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
