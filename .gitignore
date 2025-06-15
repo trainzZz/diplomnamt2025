@@ -26,5 +26,3 @@ yarn-error.log*
 .env
 .env.local
 
-# Firebase Admin SDK service account key
-src/server/serviceAccountKey.json

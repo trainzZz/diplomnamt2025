@@ -8,24 +8,18 @@ const path = require('path');
 const admin = require('firebase-admin');
 const { getFirestore } = require('firebase-admin/firestore');
 
-// ЗАМЕНИТЕ ЭТО: Путь к вашему файлу ключа сервисного аккаунта
-const serviceAccount = require('./serviceAccountKey.json'); 
-// ПОКА ЧТО ЗАКОММЕНТИРОВАНО - РАСКОММЕНТИРУЙТЕ И УКАЖИТЕ ПРАВИЛЬНЫЙ ПУТЬ ПОСЛЕ ЗАГРУЗКИ КЛЮЧА
+// Инициализация Firebase Admin SDK
+const serviceAccount = require('./serviceAccountKey.json');
 
 try {
-  // Проверяем, инициализировано ли уже приложение по умолчанию
   if (admin.apps.length === 0) {
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount) // ПОКА ЧТО ЗАКОММЕНТИРОВАНО
-      // Если вы установите переменную окружения GOOGLE_APPLICATION_CREDENTIALS,
-      // то можно не передавать credential явно, SDK подхватит его автоматически.
-      // Либо, после получения файла serviceAccountKey.json, раскомментируйте строку выше 
-      // и убедитесь, что serviceAccount импортирован правильно.
+      credential: admin.credential.cert(serviceAccount)
     });
   }
 } catch (error) {
   console.error("Ошибка инициализации Firebase Admin SDK:", error);
-  // Можно добавить process.exit(1); если без Firebase сервер не имеет смысла
+  process.exit(1); // Завершаем процесс, так как без Firebase сервер не имеет смысла
 }
 
 const db = getFirestore();
