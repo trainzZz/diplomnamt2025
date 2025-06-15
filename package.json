@@ -29,7 +29,12 @@
     "test": "react-app-rewired test",
     "eject": "react-scripts eject",
     "server": "node src/server/telegramServer.js",
-    "asf": "node src/server/telegramServer.js && react-app-rewired start "
+    "dev": "concurrently \"npm run start\" \"npm run server\"",
+    "start:prod": "concurrently \"serve -s build\" \"npm run server\"",
+    "deploy": "npm run build && firebase deploy --only hosting",
+    "deploy:all": "npm run build && firebase deploy",
+    "clean": "rimraf build",
+    "rebuild": "npm run clean && npm run build"
   },
   "eslintConfig": {
     "extends": [
@@ -52,12 +57,15 @@
   "devDependencies": {
     "assert": "^2.1.0",
     "buffer": "^6.0.3",
+    "concurrently": "^9.1.2",
     "crypto-browserify": "^3.12.0",
     "https-browserify": "^1.0.0",
     "os-browserify": "^0.3.0",
     "path-browserify": "^1.0.1",
     "process": "^0.11.10",
     "react-app-rewired": "^2.2.1",
+    "rimraf": "^6.0.1",
+    "serve": "^14.2.4",
     "stream-browserify": "^3.0.0",
     "stream-http": "^3.2.0",
     "util": "^0.12.5",
