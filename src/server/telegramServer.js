@@ -35,50 +35,8 @@ const db = getFirestore();
 
 const app = express();
 
-// Инициализация бота Telegram с обработкой ошибок
-let bot;
-const initializeBot = () => {
-  try {
-    bot = new TelegramBot(config.TELEGRAM_BOT_TOKEN, { 
-      polling: {
-        interval: 300,
-        autoStart: true,
-        params: {
-          timeout: 10
-        }
-      }
-    });
-
-    // Обработка ошибок бота
-    bot.on('polling_error', (error) => {
-      console.error('Ошибка polling:', error.message);
-      if (error.message.includes('409 Conflict')) {
-        console.log('Перезапуск бота...');
-        setTimeout(() => {
-          bot.stopPolling();
-          initializeBot();
-        }, 5000);
-      }
-    });
-
-    // Обработка ошибок соединения
-    bot.on('webhook_error', (error) => {
-      console.error('Ошибка webhook:', error);
-    });
-
-    // Обработка ошибок при отправке сообщений
-    bot.on('error', (error) => {
-      console.error('Ошибка бота:', error);
-    });
-
-    console.log('Telegram бот успешно инициализирован');
-  } catch (error) {
-    console.error('Ошибка при инициализации бота:', error);
-    setTimeout(initializeBot, 5000);
-  }
-};
-
-initializeBot();
+// Инициализация бота Telegram
+const bot = new TelegramBot(config.TELEGRAM_BOT_TOKEN, { polling: true });
 
 // Middleware
 app.use(cors());
