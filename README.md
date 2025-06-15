@@ -68,3 +68,13 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+# ProTracker
+
+## Настройка Firebase
+
+1. Создайте проект в [Firebase Console](https://console.firebase.google.com)
+2. Перейдите в Project Settings -> Service accounts
+3. Нажмите "Generate new private key"
+4. Скачайте файл и переименуйте его в `serviceAccountKey.json`
+5. Поместите файл в папку `src/server/`
