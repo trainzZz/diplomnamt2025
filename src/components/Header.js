@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
+import { FaChevronDown } from 'react-icons/fa';
 
 const HeaderContainer = styled.header`
   background-color: rgba(29, 29, 29, 0.8);
@@ -12,11 +13,10 @@ const HeaderContainer = styled.header`
   z-index: 100;
   transition: all 0.3s ease;
   border-bottom: 1px solid rgba(142, 36, 170, 0.2);
-  
-  &.scrolled {
-    padding: 10px 0;
-    background-color: rgba(20, 20, 20, 0.95);
-    box-shadow: var(--elevation-3), var(--glow);
+  @media (max-width: 700px) {
+    padding: 8px 0;
+    width: 100vw;
+    left: 0;
   }
 `;
 
@@ -27,6 +27,68 @@ const Nav = styled.nav`
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
+  position: relative;
+  @media (max-width: 700px) {
+    max-width: none;
+    margin: 0;
+    width: 100vw;
+    padding: 0 2vw;
+  }
+`;
+
+const Burger = styled.button`
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 120;
+  @media (max-width: 700px) {
+    display: block;
+    margin-left: 8px;
+  }
+  svg {
+    width: 32px;
+    height: 32px;
+    color: var(--primary-light);
+  }
+`;
+
+const Overlay = styled.div`
+  display: none;
+  @media (max-width: 700px) {
+    display: ${({ open }) => (open ? 'block' : 'none')};
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 105;
+    transition: opacity 0.3s ease;
+    opacity: ${({ open }) => (open ? 1 : 0)};
+    pointer-events: ${({ open }) => (open ? 'auto' : 'none')};
+  }
+`;
+
+const MobileMenu = styled.div`
+  display: none;
+  @media (max-width: 700px) {
+    display: ${({ open }) => (open ? 'flex' : 'none')};
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    background: rgba(29, 29, 29, 0.98);
+    box-shadow: -2px 0 16px rgba(142,36,170,0.15);
+    padding: 32px 24px 24px 24px;
+    z-index: 110;
+    gap: 24px;
+    animation: fadeIn 0.3s;
+  }
 `;
 
 const Logo = styled(Link)`
@@ -55,6 +117,9 @@ const NavLinks = styled.div`
   gap: 20px;
   align-items: center;
   font-family: 'Montserrat', sans-serif;
+  @media (max-width: 700px) {
+    display: none;
+  }
 `;
 
 const NavLink = styled(Link)`
@@ -143,86 +208,11 @@ const Button = styled.button`
   }
 `;
 
-const AdminDropdown = styled.div`
-  position: relative;
-  list-style: none;
-`;
-
-const AdminLink = styled.div`
-  cursor: pointer;
-  color: var(--text-color);
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 16px;
-  background: rgba(45, 45, 45, 0.5);
-  border-radius: var(--border-radius);
-  transition: all 0.3s ease;
-  border: 1px solid rgba(142, 36, 170, 0.1);
-  
-  &:hover {
-    background: rgba(142, 36, 170, 0.1);
-    color: var(--primary-light);
-    transform: translateY(-2px);
-    border-color: rgba(142, 36, 170, 0.3);
-  }
-`;
-
-const AdminDropdownMenu = styled.ul`
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background: rgba(35, 35, 35, 0.95);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(142, 36, 170, 0.2);
-  border-radius: var(--border-radius);
-  box-shadow: var(--elevation-2);
-  min-width: 180px;
-  z-index: 100;
-  display: none;
-  margin-top: 8px;
-  overflow: hidden;
-  padding: 5px 0;
-  list-style: none;
-  
-  ${AdminDropdown}:hover & {
-    display: block;
-  }
-  
-  li {
-    padding: 0;
-    list-style: none;
-    
-    &:hover {
-      background-color: rgba(142, 36, 170, 0.1);
-    }
-  }
-  
-  a {
-    color: var(--text-color);
-    text-decoration: none;
-    display: block;
-    padding: 12px 15px;
-    font-family: 'Montserrat', sans-serif;
-    transition: all 0.3s ease;
-    
-    &.active {
-      color: var(--primary-light);
-      background-color: rgba(142, 36, 170, 0.1);
-      font-weight: 600;
-    }
-    
-    &:hover {
-      color: var(--primary-light);
-    }
-  }
-`;
-
 function Header({ isAuthenticated, onLogout, isAdmin }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   
   // Обработка скролла для изменения стиля хедера
   useEffect(() => {
@@ -245,39 +235,86 @@ function Header({ isAuthenticated, onLogout, isAdmin }) {
     }
     navigate('/auth');
   };
-  
+
   return (
-    <HeaderContainer className={scrolled ? 'scrolled' : ''}>
-      <Nav>
-        <Logo to="/" className={scrolled ? 'scrolled' : ''}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 8H20M4 16H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M6 4H18L16 20H8L6 4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
-            <path d="M10 12L14 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          ProTracker
-        </Logo>
-        
-        <NavLinks>
-          {isAuthenticated ? (
-            <>
-              <NavLink to="/profile" className={location.pathname === '/profile' ? 'active' : ''}>
-                Личный кабинет
+    <div>
+      <HeaderContainer scrolled={scrolled}>
+        <Nav>
+          <Logo to="/">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L20 6V18L12 22L4 18V6L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+              <path d="M4 6L12 10L20 6" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+              <path d="M12 10V22" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+            </svg>
+            ProTracker
+          </Logo>
+
+          <Burger onClick={() => setMenuOpen(!menuOpen)}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M3 18H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </Burger>
+          
+          <Overlay open={menuOpen} onClick={() => setMenuOpen(false)} />
+          <MobileMenu open={menuOpen}>
+            <Logo to="/" onClick={() => setMenuOpen(false)}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L20 6V18L12 22L4 18V6L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                <path d="M4 6L12 10L20 6" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                <path d="M12 10V22" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+              </svg>
+              ProTracker
+            </Logo>
+            {isAuthenticated && (
+              <>
+                <NavLink 
+                  to="/profile" 
+                  className={location.pathname === '/profile' ? 'active' : ''}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Личный кабинет
+                </NavLink>
+                <NavLink 
+                  to="/packages" 
+                  className={location.pathname === '/packages' ? 'active' : ''}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Мои посылки
+                </NavLink>
+                <Button onClick={() => { setMenuOpen(false); handleLogout(); }} style={{ width: '100%', marginTop: 16 }}>Выйти</Button>
+              </>
+            )} {!isAuthenticated && (
+              <NavLink to="/auth" className={location.pathname === '/auth' ? 'active' : ''} onClick={() => setMenuOpen(false)}>
+                Войти
               </NavLink>
-              <NavLink to="/packages" className={location.pathname === '/packages' ? 'active' : ''}>
-                Мои посылки
-              </NavLink>
+            )}
+          </MobileMenu>
+
+          <NavLinks>
+            {isAuthenticated && (
+              <>
+                <NavLink to="/profile" className={location.pathname === '/profile' ? 'active' : ''}>
+                  Личный кабинет
+                </NavLink>
+                <NavLink to="/packages" className={location.pathname === '/packages' ? 'active' : ''}>
+                  Мои посылки
+                </NavLink>
+              </>
+            )}
+            {isAuthenticated ? (
               <Button onClick={handleLogout}>Выйти</Button>
-            </>
-          ) : (
-            <NavLink to="/auth" className={location.pathname === '/auth' ? 'active' : ''}>
-              Войти
-            </NavLink>
-          )}
-        </NavLinks>
-      </Nav>
-    </HeaderContainer>
+            ) : (
+              <NavLink to="/auth" className={location.pathname === '/auth' ? 'active' : ''}>
+                Войти
+              </NavLink>
+            )}
+          </NavLinks>
+        </Nav>
+      </HeaderContainer>
+    </div>
   );
 }
 
-export default Header; 
+export default Header;

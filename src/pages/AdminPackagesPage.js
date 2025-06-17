@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { getAllPackages, deletePackage, updatePackage, addPackage } from '../firebase';
+import { getAllPackages, deletePackage, updatePackage, addPackage, getAllUsers, allStatuses } from '../firebase';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import styled from 'styled-components';
+import styled, { createGlobalStyle } from 'styled-components';
+import { FaSearch, FaChevronDown, FaRegCopy, FaCheck } from 'react-icons/fa';
 
 // Стилизованный компонент для отображения статуса
 const StatusBadge = styled.span`
@@ -236,6 +237,14 @@ const AdminPanelContainer = styled.div`
   overflow: visible;
   border: 1px solid rgba(142, 36, 170, 0.2);
   min-height: calc(100vh - 180px);
+  @media (max-width: 700px) {
+    width: 100vw;
+    max-width: 100vw;
+    padding: 8px 2vw;
+    margin: 0 auto;
+    border-radius: 10px;
+    overflow-x: visible;
+  }
   
   &::before {
     content: '';
@@ -266,6 +275,164 @@ const AdminPanelContainer = styled.div`
     width: 100%;
     margin-top: 30px;
   }
+  
+  .admin-table th, .admin-table td {
+    @media (max-width: 600px) {
+      padding: 8px 6px;
+      font-size: 13px;
+      min-width: 90px;
+      word-break: break-word;
+    }
+  }
+`;
+
+const SearchWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  background: rgba(20, 20, 20, 0.7);
+  border: 1px solid #444;
+  border-radius: 10px;
+  padding: 8px 14px;
+  margin-bottom: 24px;
+  width: 320px;
+  max-width: 100%;
+`;
+
+const SearchInput = styled.input`
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-color);
+  font-size: 15px;
+  width: 100%;
+  &::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+  }
+`;
+
+// Стилизованная кнопка для фильтров
+const ToggleFiltersButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  margin-right: 20px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(142,36,170,0.12);
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
+  margin-bottom: 8px;
+  min-width: 180px;
+  user-select: none;
+  &:hover {
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-color) 100%);
+    color: #fff;
+    box-shadow: 0 6px 24px rgba(142,36,170,0.18);
+    transform: translateY(-2px) scale(1.03);
+  }
+  svg {
+    transition: transform 0.3s;
+    font-size: 20px;
+    margin-left: 4px;
+    transform: rotate(${props => props.open ? '180deg' : '0deg'});
+  }
+`;
+
+// Добавить глобальные стили для datepicker
+const DatepickerStyles = createGlobalStyle`
+  .react-datepicker__input-container input {
+    background: rgba(20,20,20,0.7);
+    color: var(--text-color);
+    border: 1px solid #444;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 15px;
+    font-family: 'Montserrat', sans-serif;
+    outline: none;
+    width: 100%;
+  }
+  .react-datepicker {
+    background: #23232e;
+    color: #fff;
+    border-radius: 14px;
+    border: 1px solid #444;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    font-family: 'Montserrat', sans-serif;
+    overflow: hidden;
+  }
+  .react-datepicker__header {
+    background: #23232e;
+    border-bottom: 1px solid #444;
+    border-radius: 14px 14px 0 0;
+  }
+  .react-datepicker__day, .react-datepicker__day-name {
+    color: #fff;
+    background: transparent;
+    border-radius: 8px;
+    transition: background 0.15s;
+  }
+  .react-datepicker__day--selected, .react-datepicker__day--keyboard-selected {
+    background: var(--primary-color);
+    color: #fff;
+  }
+  .react-datepicker__day:hover {
+    background: rgba(142,36,170,0.18);
+    color: #fff;
+  }
+  .react-datepicker__current-month, .react-datepicker__month-read-view--selected-month, .react-datepicker__year-read-view--selected-year {
+    color: #fff;
+  }
+  .react-datepicker__navigation {
+    top: 16px;
+    line-height: 1.2;
+  }
+  .react-datepicker__navigation-icon::before {
+    border-color: var(--primary-color);
+  }
+  .react-datepicker__today-button, .react-datepicker__close-icon {
+    background: var(--primary-color);
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 600;
+    margin: 8px;
+    padding: 6px 12px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .react-datepicker__today-button:hover, .react-datepicker__close-icon:hover {
+    background: #a020f0;
+  }
+`;
+
+// Добавить глобальные стили для кастомного select
+const CustomSelectStyles = createGlobalStyle`
+  select, select:focus {
+    background: rgba(20,20,20,0.7) !important;
+    color: var(--text-color) !important;
+    border: 1px solid #444 !important;
+    border-radius: 10px !important;
+    padding: 12px !important;
+    font-size: 15px !important;
+    font-family: 'Montserrat', sans-serif !important;
+    outline: none !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10) !important;
+    transition: box-shadow 0.2s;
+  }
+  select option {
+    background: #23232e !important;
+    color: #fff !important;
+  }
+  select option:checked, select option:hover {
+    background: var(--primary-color) !important;
+    color: #fff !important;
+  }
 `;
 
 // Функция для форматирования статуса
@@ -280,6 +447,8 @@ const formatStatus = (status) => {
       return 'Готова к получению';
     case 'cancelled':
       return 'Отменена';
+    case 'pending':
+      return 'Создана';
     default:
       return status;
   }
@@ -310,13 +479,30 @@ const sendStatusNotification = async (packageId, newStatus) => {
 
 function AdminPackagesPage() {
   const [packages, setPackages] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [currentPackage, setCurrentPackage] = useState(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [packageToDelete, setPackageToDelete] = useState(null);
-  
+  const [searchTerm, setSearchTerm] = useState('');
+  // Новые состояния для фильтров
+  const [userFilter, setUserFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [showFilters, setShowFilters] = useState(true);
+  const [userInput, setUserInput] = useState('');
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const userInputRef = useRef(null);
+  const [copiedId, setCopiedId] = useState(null);
+  const [copiedUserId, setCopiedUserId] = useState(null);
+  const [trackError, setTrackError] = useState('');
+  // Состояния для сортировки
+  const [sortField, setSortField] = useState('');
+  const [sortOrder, setSortOrder] = useState('asc');
+
   const [formData, setFormData] = useState({
     trackingNumber: '',
     description: '',
@@ -326,7 +512,23 @@ function AdminPackagesPage() {
     userId: ''
   });
 
-  // Загрузка данных посылок
+  // Только нужные статусы
+  const statusOptions = [
+    { value: 'created', label: 'Создана' },
+    { value: 'in_transit', label: 'В пути' },
+    { value: 'ready', label: 'Готова к получению' },
+    { value: 'cancelled', label: 'Отменена' }
+  ];
+
+  // Для автокомплита пользователя в формах
+  const [userInputAdd, setUserInputAdd] = useState('');
+  const [userDropdownOpenAdd, setUserDropdownOpenAdd] = useState(false);
+  const [userInputEdit, setUserInputEdit] = useState('');
+  const [userDropdownOpenEdit, setUserDropdownOpenEdit] = useState(false);
+  const userInputAddRef = useRef(null);
+  const userInputEditRef = useRef(null);
+
+  // Загрузка данных посылок и пользователей
   const fetchPackages = async () => {
     try {
       const packagesData = await getAllPackages();
@@ -337,9 +539,17 @@ function AdminPackagesPage() {
       setLoading(false);
     }
   };
-
+  const fetchUsers = async () => {
+    try {
+      const usersData = await getAllUsers();
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Ошибка при загрузке пользователей:', error);
+    }
+  };
   useEffect(() => {
     fetchPackages();
+    fetchUsers();
   }, []);
 
   // Обработчик изменения полей формы
@@ -354,6 +564,12 @@ function AdminPackagesPage() {
   // Обработчик добавления посылки
   const handleAddPackage = async (e) => {
     e.preventDefault();
+    setTrackError('');
+    // Проверка уникальности трек-номера
+    if (packages.some(pkg => pkg.trackingNumber === formData.trackingNumber)) {
+      setTrackError('Посылка с таким трек-номером уже существует!');
+      return;
+    }
     try {
       await addPackage(formData.userId, {
         trackingNumber: formData.trackingNumber,
@@ -371,7 +587,7 @@ function AdminPackagesPage() {
         userId: ''
       });
       setShowAddForm(false);
-      await fetchPackages(); // Перезагрузка списка посылок
+      await fetchPackages();
     } catch (error) {
       console.error('Ошибка при создании посылки:', error);
       alert(`Ошибка при создании посылки: ${error.message}`);
@@ -395,13 +611,15 @@ function AdminPackagesPage() {
   // Обработчик сохранения изменений посылки
   const handleUpdatePackage = async (e) => {
     e.preventDefault();
+    setTrackError('');
     if (!currentPackage) return;
-
+    // Проверка уникальности трек-номера (разрешить текущей посылке)
+    if (packages.some(pkg => pkg.trackingNumber === formData.trackingNumber && pkg.id !== currentPackage.id)) {
+      setTrackError('Посылка с таким трек-номером уже существует!');
+      return;
+    }
     try {
-      // Сохраняем старый статус для сравнения
       const oldStatus = currentPackage.status;
-      
-      // Обновляем посылку
       await updatePackage(currentPackage.id, {
         trackingNumber: formData.trackingNumber,
         description: formData.description,
@@ -410,22 +628,16 @@ function AdminPackagesPage() {
         status: formData.status,
         userId: formData.userId
       });
-
-      // Если статус изменился, отправляем уведомление через API
       if (oldStatus !== formData.status) {
         try {
           await sendStatusNotification(currentPackage.id, formData.status);
-          console.log('Уведомление успешно отправлено');
         } catch (error) {
-          console.error('Ошибка при отправке уведомления:', error);
-          // Показываем уведомление об ошибке, но не прерываем выполнение
           alert('Посылка обновлена, но возникла ошибка при отправке уведомления');
         }
       }
-
       setShowEditForm(false);
       setCurrentPackage(null);
-      await fetchPackages(); // Перезагрузка списка посылок
+      await fetchPackages();
     } catch (error) {
       console.error('Ошибка при обновлении посылки:', error);
       alert(`Ошибка при обновлении посылки: ${error.message}`);
@@ -449,6 +661,132 @@ function AdminPackagesPage() {
     } catch (error) {
       console.error('Ошибка при удалении посылки:', error);
       alert(`Ошибка при удалении посылки: ${error.message}`);
+    }
+  };
+
+  // Фильтрация посылок по трек-номеру, пользователю, статусу и дате
+  const filteredPackages = packages.filter(pkg => {
+    // Поиск по трек-номеру
+    const matchesSearch = searchTerm.trim() === '' ||
+      (pkg.trackingNumber && pkg.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+    // Фильтр по пользователю
+    const matchesUser = !userFilter || pkg.userId === userFilter;
+    // Фильтр по статусу
+    const matchesStatus = !statusFilter || (pkg.status && pkg.status === statusFilter);
+    // Фильтр по дате
+    let matchesDate = true;
+    if (dateFrom) {
+      const from = new Date(dateFrom);
+      const created = pkg.createdAt?.seconds ? new Date(pkg.createdAt.seconds * 1000) : null;
+      if (created && created < from) matchesDate = false;
+    }
+    if (dateTo) {
+      const to = new Date(dateTo);
+      const created = pkg.createdAt?.seconds ? new Date(pkg.createdAt.seconds * 1000) : null;
+      if (created && created > to) matchesDate = false;
+    }
+    return matchesSearch && matchesUser && matchesStatus && matchesDate;
+  });
+
+  // Фильтрация пользователей для фильтра
+  const filteredUsers = users.filter(u => {
+    const val = userInput.trim().toLowerCase();
+    if (!val) return true;
+    return (
+      (u.fullName && u.fullName.toLowerCase().includes(val)) ||
+      (u.email && u.email.toLowerCase().includes(val)) ||
+      u.id.toLowerCase().includes(val)
+    );
+  });
+
+  // Фильтрация пользователей для автокомплита
+  const filteredUsersAdd = users.filter(u => {
+    const val = userInputAdd.trim().toLowerCase();
+    if (!val) return true;
+    return (
+      (u.fullName && u.fullName.toLowerCase().includes(val)) ||
+      (u.email && u.email.toLowerCase().includes(val)) ||
+      u.id.toLowerCase().includes(val)
+    );
+  });
+
+  const filteredUsersEdit = users.filter(u => {
+    const val = userInputEdit.trim().toLowerCase();
+    if (!val) return true;
+    return (
+      (u.fullName && u.fullName.toLowerCase().includes(val)) ||
+      (u.email && u.email.toLowerCase().includes(val)) ||
+      u.id.toLowerCase().includes(val)
+    );
+  });
+
+  const handleCopyId = (id) => {
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+  const handleCopyUserId = (userId) => {
+    navigator.clipboard.writeText(userId);
+    setCopiedUserId(userId);
+    setTimeout(() => setCopiedUserId(null), 1500);
+  };
+
+  // 1. Валидация всех полей (кроме описания)
+  const isFormValid = formData.userId && formData.trackingNumber && formData.weight && formData.dimensions && formData.status;
+
+  // 2. Функция очистки формы
+  const resetForm = () => {
+    setFormData({
+      trackingNumber: '',
+      description: '',
+      weight: '',
+      dimensions: '',
+      status: 'pending',
+      userId: ''
+    });
+    setTrackError('');
+  };
+
+  // 3. Сброс формы при закрытии модалок
+  const handleCloseAddForm = () => {
+    setShowAddForm(false);
+    resetForm();
+    setUserInputAdd('');
+    setUserDropdownOpenAdd(false);
+  };
+  const handleCloseEditForm = () => {
+    setShowEditForm(false);
+    setCurrentPackage(null);
+    resetForm();
+    setUserInputEdit('');
+    setUserDropdownOpenEdit(false);
+  };
+
+  // Функция сортировки
+  const sortedPackages = [...filteredPackages].sort((a, b) => {
+    if (!sortField) return 0;
+    let aValue = a[sortField];
+    let bValue = b[sortField];
+    if (sortField === 'fullName') {
+      aValue = users.find(u => u.id === a.userId)?.fullName || '';
+      bValue = users.find(u => u.id === b.userId)?.fullName || '';
+    }
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortOrder === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+    }
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+    }
+    return 0;
+  });
+
+  // Обработчик клика по заголовку
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
     }
   };
 
@@ -478,9 +816,150 @@ function AdminPackagesPage() {
           <Link to="/admin/packages" className="active">Посылки</Link>
         </div>
         
+        <SearchWrapper>
+          <FaSearch style={{ color: 'var(--text-secondary)', marginRight: 8, fontSize: 16 }} />
+          <SearchInput
+            type="text"
+            placeholder="Поиск по трек-номеру..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </SearchWrapper>
+        
+        {/* Кнопка скрытия/отображения фильтров */}
+        <ToggleFiltersButton open={showFilters} onClick={() => setShowFilters(v => !v)}>
+          {showFilters ? 'Скрыть фильтры' : 'Показать фильтры'}
+          <FaChevronDown style={{ transform: showFilters ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+        </ToggleFiltersButton>
+        {/* Фильтры */}
+        {showFilters && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 16,
+          marginBottom: 20,
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          width: '100%'
+        }}>
+          {/* Фильтр по пользователю с автокомплитом */}
+          <div style={{ minWidth: 0, width: '100%', position: 'relative' }}>
+            <label style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Пользователь</label>
+            <input
+              type="text"
+              ref={userInputRef}
+              value={userFilter ? (users.find(u => u.id === userFilter)?.fullName || users.find(u => u.id === userFilter)?.email || userInput) : userInput}
+              onChange={e => {
+                setUserInput(e.target.value);
+                setUserFilter('');
+                setUserDropdownOpen(true);
+              }}
+              onFocus={() => setUserDropdownOpen(true)}
+              onBlur={() => setTimeout(() => setUserDropdownOpen(false), 150)}
+              placeholder="Начните вводить ФИО или email..."
+              style={{ width: '100%', padding: 8, borderRadius: 8, background: 'rgba(20,20,20,0.7)', color: 'var(--text-color)', border: '1px solid #444', fontSize: 15, outline: userDropdownOpen ? '2px solid var(--primary-color)' : 'none' }}
+              autoComplete="off"
+            />
+            {userDropdownOpen && filteredUsers.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: 70,
+                left: 0,
+                right: 0,
+                background: 'rgba(30,30,30,0.98)',
+                border: '1px solid #444',
+                borderRadius: 8,
+                zIndex: 20,
+                maxHeight: 220,
+                overflowY: 'auto',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
+              }}>
+                {filteredUsers.map(u => (
+                  <div
+                    key={u.id}
+                    onMouseDown={() => {
+                      setUserFilter(u.id);
+                      setUserInput(u.fullName || u.email || u.id);
+                      setUserDropdownOpen(false);
+                    }}
+                    style={{
+                      padding: '10px 16px',
+                      cursor: 'pointer',
+                      color: 'var(--text-color)',
+                      background: userFilter === u.id ? 'rgba(142,36,170,0.08)' : 'transparent',
+                      fontWeight: userFilter === u.id ? 600 : 400
+                    }}
+                  >
+                    {(u.fullName ? u.fullName : u.email) || u.id}
+                    {u.email && u.fullName && (
+                      <span style={{ color: 'var(--text-secondary)', fontSize: 13, marginLeft: 8 }}>{u.email}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Кнопка сброса фильтра по пользователю */}
+            {userFilter && (
+              <button
+                type="button"
+                onClick={() => { setUserFilter(''); setUserInput(''); }}
+                style={{
+                  position: 'absolute',
+                  right: 8,
+                  top: 32,
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--primary-light)',
+                  fontSize: 18,
+                  cursor: 'pointer',
+                  zIndex: 21
+                }}
+                title="Сбросить фильтр"
+              >×</button>
+            )}
+          </div>
+          {/* Фильтр по статусу */}
+          <div style={{ minWidth: 0, width: '100%' }}>
+            <label style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Статус</label>
+            <select
+              id="status-filter"
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              style={{ width: '100%', padding: 8, borderRadius: 8, background: 'rgba(20,20,20,0.7)', color: 'var(--text-color)', border: '1px solid #444', fontSize: 15 }}
+            >
+              <option value="">Выберите статус...</option>
+              <option value="created">Создана</option>
+              <option value="in_transit">В пути</option>
+              <option value="ready">Готова к получению</option>
+              <option value="cancelled">Отменена</option>
+            </select>
+          </div>
+          {/* Фильтр по дате */}
+          <div style={{ minWidth: 0, width: '100%' }}>
+            <label style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Дата создания от</label>
+            <input
+              type='date'
+              value={dateFrom}
+              onChange={e => setDateFrom(e.target.value)}
+              style={{ width: '100%', padding: 8, borderRadius: 8, background: 'rgba(20,20,20,0.7)', color: 'var(--text-color)', border: '1px solid #444', fontSize: 15 }}
+            />
+          </div>
+          <div style={{ minWidth: 0, width: '100%' }}>
+            <label style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Дата создания до</label>
+            <input
+              type='date'
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              style={{ width: '100%', padding: 8, borderRadius: 8, background: 'rgba(20,20,20,0.7)', color: 'var(--text-color)', border: '1px solid #444', fontSize: 15 }}
+            />
+          </div>
+        </div>
+        )}
+        
         <button 
           className="admin-btn admin-btn-add" 
           onClick={() => setShowAddForm(true)}
+          style={{ width: '100%', marginTop: 12 }}
         >
           Добавить посылку
         </button>
@@ -490,20 +969,79 @@ function AdminPackagesPage() {
           <ModalContent>
             <ModalHeader>
               <h2>Добавить посылку</h2>
-              <CloseButton onClick={() => setShowAddForm(false)}>×</CloseButton>
+              <CloseButton onClick={handleCloseAddForm}>×</CloseButton>
             </ModalHeader>
             
             <form onSubmit={handleAddPackage} className="admin-form">
-              <div className="admin-form-group">
-                <label htmlFor="userId">ID пользователя:</label>
-                <input 
-                  type="text" 
-                  id="userId" 
-                  name="userId" 
-                  value={formData.userId}
-                  onChange={handleInputChange}
+              <div className="admin-form-group" style={{ position: 'relative' }}>
+                <label htmlFor="userId">Пользователь:</label>
+                <input
+                  type="text"
+                  id="userId"
+                  name="userId"
+                  ref={userInputAddRef}
+                  value={formData.userId ? (users.find(u => u.id === formData.userId)?.fullName || users.find(u => u.id === formData.userId)?.email || userInputAdd) : userInputAdd}
+                  onChange={e => {
+                    setUserInputAdd(e.target.value);
+                    setFormData({ ...formData, userId: '' });
+                    setUserDropdownOpenAdd(true);
+                  }}
+                  onFocus={() => setUserDropdownOpenAdd(true)}
+                  onBlur={() => setTimeout(() => setUserDropdownOpenAdd(false), 150)}
+                  placeholder="Начните вводить ФИО или email..."
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    background: 'rgba(20,20,20,0.7)',
+                    color: 'var(--text-color)',
+                    border: '1px solid #444',
+                    fontSize: '15px',
+                    fontFamily: 'Montserrat, sans-serif',
+                    outline: userDropdownOpenAdd ? '2px solid var(--primary-color)' : 'none',
+                    marginBottom: 0
+                  }}
+                  autoComplete="off"
                   required
                 />
+                {userDropdownOpenAdd && filteredUsersAdd.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 80,
+                    left: 0,
+                    right: 0,
+                    background: 'rgba(30,30,30,0.98)',
+                    border: '1px solid #444',
+                    borderRadius: 8,
+                    zIndex: 20,
+                    maxHeight: 220,
+                    overflowY: 'auto',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
+                  }}>
+                    {filteredUsersAdd.map(u => (
+                      <div
+                        key={u.id}
+                        onMouseDown={() => {
+                          setFormData({ ...formData, userId: u.id });
+                          setUserInputAdd(u.fullName || u.email || u.id);
+                          setUserDropdownOpenAdd(false);
+                        }}
+                        style={{
+                          padding: '10px 16px',
+                          cursor: 'pointer',
+                          color: 'var(--text-color)',
+                          background: formData.userId === u.id ? 'rgba(142,36,170,0.08)' : 'transparent',
+                          fontWeight: formData.userId === u.id ? 600 : 400
+                        }}
+                      >
+                        {(u.fullName ? u.fullName : u.email) || u.id}
+                        {u.email && u.fullName && (
+                          <span style={{ color: 'var(--text-secondary)', fontSize: 13, marginLeft: 8 }}>{u.email}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
               <div className="admin-form-group">
@@ -540,11 +1078,11 @@ function AdminPackagesPage() {
               </div>
               
               <div className="admin-form-group">
-                <label htmlFor="dimensions">Размеры (см):</label>
-                <input 
-                  type="text" 
-                  id="dimensions" 
-                  name="dimensions" 
+                <label htmlFor="dimensions">Размеры (мм):</label>
+                <input
+                  type="text"
+                  id="dimensions"
+                  name="dimensions"
                   value={formData.dimensions}
                   onChange={handleInputChange}
                 />
@@ -552,31 +1090,41 @@ function AdminPackagesPage() {
               
               <div className="admin-form-group">
                 <label htmlFor="status">Статус:</label>
-                <select 
-                  id="status" 
-                  name="status" 
+                <select
+                  id="status"
+                  name="status"
                   value={formData.status}
                   onChange={handleInputChange}
+                  required
+                  style={{
+                    background: 'rgba(20,20,20,0.7)',
+                    color: 'var(--text-color)',
+                    border: '1px solid #444',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    fontSize: '15px',
+                    fontFamily: 'Montserrat, sans-serif',
+                    outline: 'none',
+                    marginBottom: 0,
+                    transition: 'box-shadow 0.2s',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
+                  }}
                 >
-                  <option value="created">Создана</option>
-                  <option value="in_transit">В пути</option>
-                  <option value="ready">Готова к получению</option>
-                  <option value="cancelled">Отменена</option>
+                  <option value="" style={{ background: '#23232e', color: '#bbb' }}>Выберите статус...</option>
+                  <option value="created" style={{ background: '#23232e', color: '#fff' }}>Создана</option>
+                  <option value="in_transit" style={{ background: '#23232e', color: '#fff' }}>В пути</option>
+                  <option value="ready" style={{ background: '#23232e', color: '#fff' }}>Готова к получению</option>
+                  <option value="cancelled" style={{ background: '#23232e', color: '#fff' }}>Отменена</option>
                 </select>
               </div>
               
+              {trackError && <div style={{ color: '#e53935', marginBottom: 10 }}>{trackError}</div>}
+              
               <div className="admin-form-actions">
-                <button 
-                  type="button" 
-                  className="admin-btn admin-form-cancel" 
-                  onClick={() => setShowAddForm(false)}
-                >
+                <button type="button" className="admin-btn admin-form-cancel" onClick={handleCloseAddForm}>
                   Отмена
                 </button>
-                <button 
-                  type="submit" 
-                  className="admin-btn admin-form-submit"
-                >
+                <button type="submit" className="admin-btn admin-form-submit" disabled={!isFormValid}>
                   Добавить
                 </button>
               </div>
@@ -590,26 +1138,82 @@ function AdminPackagesPage() {
             <ModalHeader>
               <h2>Редактировать посылку</h2>
               <CloseButton 
-                onClick={() => {
-                  setShowEditForm(false);
-                  setCurrentPackage(null);
-                }}
+                onClick={handleCloseEditForm}
               >
                 ×
               </CloseButton>
             </ModalHeader>
             
             <form onSubmit={handleUpdatePackage} className="admin-form">
-              <div className="admin-form-group">
-                <label htmlFor="userId-edit">ID пользователя:</label>
-                <input 
-                  type="text" 
-                  id="userId-edit" 
-                  name="userId" 
-                  value={formData.userId}
-                  onChange={handleInputChange}
+              <div className="admin-form-group" style={{ position: 'relative' }}>
+                <label htmlFor="userId-edit">Пользователь:</label>
+                <input
+                  type="text"
+                  id="userId-edit"
+                  name="userId"
+                  ref={userInputEditRef}
+                  value={formData.userId ? (users.find(u => u.id === formData.userId)?.fullName || users.find(u => u.id === formData.userId)?.email || userInputEdit) : userInputEdit}
+                  onChange={e => {
+                    setUserInputEdit(e.target.value);
+                    setFormData({ ...formData, userId: '' });
+                    setUserDropdownOpenEdit(true);
+                  }}
+                  onFocus={() => setUserDropdownOpenEdit(true)}
+                  onBlur={() => setTimeout(() => setUserDropdownOpenEdit(false), 150)}
+                  placeholder="Начните вводить ФИО или email..."
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    background: 'rgba(20,20,20,0.7)',
+                    color: 'var(--text-color)',
+                    border: '1px solid #444',
+                    fontSize: '15px',
+                    fontFamily: 'Montserrat, sans-serif',
+                    outline: userDropdownOpenEdit ? '2px solid var(--primary-color)' : 'none',
+                    marginBottom: 0
+                  }}
+                  autoComplete="off"
                   required
                 />
+                {userDropdownOpenEdit && filteredUsersEdit.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 80,
+                    left: 0,
+                    right: 0,
+                    background: 'rgba(30,30,30,0.98)',
+                    border: '1px solid #444',
+                    borderRadius: 8,
+                    zIndex: 20,
+                    maxHeight: 220,
+                    overflowY: 'auto',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
+                  }}>
+                    {filteredUsersEdit.map(u => (
+                      <div
+                        key={u.id}
+                        onMouseDown={() => {
+                          setFormData({ ...formData, userId: u.id });
+                          setUserInputEdit(u.fullName || u.email || u.id);
+                          setUserDropdownOpenEdit(false);
+                        }}
+                        style={{
+                          padding: '10px 16px',
+                          cursor: 'pointer',
+                          color: 'var(--text-color)',
+                          background: formData.userId === u.id ? 'rgba(142,36,170,0.08)' : 'transparent',
+                          fontWeight: formData.userId === u.id ? 600 : 400
+                        }}
+                      >
+                        {(u.fullName ? u.fullName : u.email) || u.id}
+                        {u.email && u.fullName && (
+                          <span style={{ color: 'var(--text-secondary)', fontSize: 13, marginLeft: 8 }}>{u.email}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
               <div className="admin-form-group">
@@ -646,11 +1250,11 @@ function AdminPackagesPage() {
               </div>
               
               <div className="admin-form-group">
-                <label htmlFor="dimensions-edit">Размеры (см):</label>
-                <input 
-                  type="text" 
-                  id="dimensions-edit" 
-                  name="dimensions" 
+                <label htmlFor="dimensions-edit">Размеры (мм):</label>
+                <input
+                  type="text"
+                  id="dimensions-edit"
+                  name="dimensions"
                   value={formData.dimensions}
                   onChange={handleInputChange}
                 />
@@ -658,34 +1262,41 @@ function AdminPackagesPage() {
               
               <div className="admin-form-group">
                 <label htmlFor="status-edit">Статус:</label>
-                <select 
-                  id="status-edit" 
-                  name="status" 
+                <select
+                  id="status-edit"
+                  name="status"
                   value={formData.status}
                   onChange={handleInputChange}
+                  required
+                  style={{
+                    background: 'rgba(20,20,20,0.7)',
+                    color: 'var(--text-color)',
+                    border: '1px solid #444',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    fontSize: '15px',
+                    fontFamily: 'Montserrat, sans-serif',
+                    outline: 'none',
+                    marginBottom: 0,
+                    transition: 'box-shadow 0.2s',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
+                  }}
                 >
-                  <option value="created">Создана</option>
-                  <option value="in_transit">В пути</option>
-                  <option value="ready">Готова к получению</option>
-                  <option value="cancelled">Отменена</option>
+                  <option value="" style={{ background: '#23232e', color: '#bbb' }}>Выберите статус...</option>
+                  <option value="created" style={{ background: '#23232e', color: '#fff' }}>Создана</option>
+                  <option value="in_transit" style={{ background: '#23232e', color: '#fff' }}>В пути</option>
+                  <option value="ready" style={{ background: '#23232e', color: '#fff' }}>Готова к получению</option>
+                  <option value="cancelled" style={{ background: '#23232e', color: '#fff' }}>Отменена</option>
                 </select>
               </div>
               
+              {trackError && <div style={{ color: '#e53935', marginBottom: 10 }}>{trackError}</div>}
+              
               <div className="admin-form-actions">
-                <button 
-                  type="button" 
-                  className="admin-btn admin-form-cancel" 
-                  onClick={() => {
-                    setShowEditForm(false);
-                    setCurrentPackage(null);
-                  }}
-                >
+                <button type="button" className="admin-btn admin-form-cancel" onClick={handleCloseEditForm}>
                   Отмена
                 </button>
-                <button 
-                  type="submit" 
-                  className="admin-btn admin-form-submit"
-                >
+                <button type="submit" className="admin-btn admin-form-submit" disabled={!isFormValid}>
                   Сохранить
                 </button>
               </div>
@@ -694,53 +1305,82 @@ function AdminPackagesPage() {
         </Modal>
         
         {/* Таблица посылок */}
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>ID пользователя</th>
-              <th>Трек-номер</th>
-              <th>Описание</th>
-              <th>Вес</th>
-              <th>Размеры</th>
-              <th>Статус</th>
-              <th>Дата создания</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {packages.map(packageItem => (
-              <tr key={packageItem.id}>
-                <td>{packageItem.id}</td>
-                <td>{packageItem.userId}</td>
-                <td>{packageItem.trackingNumber}</td>
-                <td>{packageItem.description || '-'}</td>
-                <td>{packageItem.weight || '-'}</td>
-                <td>{packageItem.dimensions || '-'}</td>
-                <td>
-                  <StatusBadge $status={packageItem.status}>
-                    {formatStatus(packageItem.status)}
-                  </StatusBadge>
-                </td>
-                <td>{packageItem.createdAt ? new Date(packageItem.createdAt.seconds * 1000).toLocaleDateString() : '-'}</td>
-                <td className="admin-actions">
-                  <button 
-                    className="admin-btn admin-btn-edit" 
-                    onClick={() => handleEditPackage(packageItem)}
-                  >
-                    Редактировать
-                  </button>
-                  <button 
-                    className="admin-btn admin-btn-delete" 
-                    onClick={() => handleDeleteClick(packageItem)}
-                  >
-                    Удалить
-                  </button>
-                </td>
+        <div style={{ overflowX: 'auto', width: '100%' }}>
+          <table className="admin-table" style={{ width: '100%', minWidth: 700 }}>
+            <thead>
+              <tr>
+                <th onClick={() => handleSort('id')} style={{ cursor: 'pointer' }}>
+                  ID {sortField === 'id' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th onClick={() => handleSort('fullName')} style={{ cursor: 'pointer' }}>
+                  ФИО {sortField === 'fullName' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th onClick={() => handleSort('trackingNumber')} style={{ cursor: 'pointer' }}>
+                  Трек-номер {sortField === 'trackingNumber' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th onClick={() => handleSort('description')} style={{ cursor: 'pointer' }}>
+                  Описание {sortField === 'description' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th onClick={() => handleSort('weight')} style={{ cursor: 'pointer' }}>
+                  Вес {sortField === 'weight' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th onClick={() => handleSort('dimensions')} style={{ cursor: 'pointer' }}>
+                  Размеры {sortField === 'dimensions' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th onClick={() => handleSort('status')} style={{ cursor: 'pointer' }}>
+                  Статус {sortField === 'status' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th onClick={() => handleSort('createdAt')} style={{ cursor: 'pointer' }}>
+                  Дата создания {sortField === 'createdAt' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th>Действия</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {sortedPackages.map(packageItem => (
+                <tr key={packageItem.id}>
+                  <td style={{whiteSpace: 'nowrap'}}>
+                    <span style={{fontSize: 13, fontFamily: 'monospace'}}>{packageItem.id.slice(0, 8)}...</span>
+                    <button onClick={() => handleCopyId(packageItem.id)} style={{marginLeft: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary-light)'}} title="Скопировать ID">
+                      {copiedId === packageItem.id ? <FaCheck color="#00c853" /> : <FaRegCopy />}
+                    </button>
+                  </td>
+                  <td style={{cursor: 'pointer', color: 'var(--primary-light)', fontWeight: 500}} onClick={() => handleCopyUserId(packageItem.userId)} title="Скопировать ID пользователя">
+                    {(() => {
+                      const user = users.find(u => u.id === packageItem.userId);
+                      return user?.fullName || user?.email || packageItem.userId;
+                    })()}
+                    {copiedUserId === packageItem.userId && <FaCheck style={{marginLeft: 6}} color="#00c853" />}
+                  </td>
+                  <td>{packageItem.trackingNumber}</td>
+                  <td>{packageItem.description || '-'}</td>
+                  <td>{packageItem.weight || '-'}</td>
+                  <td>{packageItem.dimensions || '-'}</td>
+                  <td>
+                    <StatusBadge $status={packageItem.status}>
+                      {formatStatus(packageItem.status)}
+                    </StatusBadge>
+                  </td>
+                  <td>{packageItem.createdAt ? new Date(packageItem.createdAt.seconds * 1000).toLocaleDateString() : '-'}</td>
+                  <td className="admin-actions">
+                    <button 
+                      className="admin-btn admin-btn-edit" 
+                      onClick={() => handleEditPackage(packageItem)}
+                    >
+                      Редактировать
+                    </button>
+                    <button 
+                      className="admin-btn admin-btn-delete" 
+                      onClick={() => handleDeleteClick(packageItem)}
+                    >
+                      Удалить
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         
         {/* Диалог подтверждения удаления */}
         <Modal $show={showConfirmDialog}>
@@ -783,6 +1423,8 @@ function AdminPackagesPage() {
         </Modal>
       </AdminPanelContainer>
       <Footer />
+      <DatepickerStyles />
+      <CustomSelectStyles />
     </div>
   );
 }

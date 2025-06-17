@@ -30,6 +30,13 @@ const ProfileContainer = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
+  width: 100vw;
+  overflow-x: hidden;
+  @media (max-width: 600px) {
+    width: 100vw;
+    min-width: 0;
+    padding: 0;
+  }
   
   &::before {
     content: '';
@@ -52,6 +59,11 @@ const Content = styled.div`
   z-index: 1;
   animation: ${fadeUp} 0.6s ease-out;
   flex: 1;
+  width: 100%;
+  @media (max-width: 600px) {
+    padding: 24px 2vw 0 2vw;
+    max-width: 100vw;
+  }
 `;
 
 const Title = styled.h1`
@@ -80,12 +92,21 @@ const ProfileCard = styled.div`
   border-radius: var(--border-radius);
   box-shadow: var(--elevation-2);
   padding: 30px;
-  margin: 30px 0;
+  margin: 30px auto;
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(142, 36, 170, 0.2);
   animation: ${fadeUp} 0.6s ease-out;
-  
+  max-width: 600px;
+  width: 100%;
+  min-width: 0;
+  @media (max-width: 600px) {
+    max-width: 100vw;
+    min-width: 0;
+    padding: 18px 2vw;
+    margin: 16px 0;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+  }
   &::before {
     content: '';
     position: absolute;
@@ -210,11 +231,18 @@ const Input = styled.input`
   font-size: 16px;
   color: var(--text-color);
   font-family: 'Montserrat', sans-serif;
-  
+  transition: background 0.2s, border 0.2s;
   &:focus {
     border-color: var(--primary-color);
     outline: none;
     box-shadow: 0 0 0 3px rgba(142, 36, 170, 0.25);
+  }
+  &:disabled {
+    background: #23232b !important;
+    color: #888 !important;
+    cursor: not-allowed;
+    border: 1.5px solid #444 !important;
+    opacity: 1;
   }
 `;
 
@@ -247,20 +275,22 @@ const SaveButton = styled.button`
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: white;
   border: none;
-  padding: 12px 24px;
+  padding: 16px 0;
   border-radius: var(--border-radius);
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: 180px;
+  margin-left: 16px;
   box-shadow: 0 4px 15px rgba(142, 36, 170, 0.3);
   font-family: 'Montserrat', sans-serif;
-  min-width: 150px;
-  
-  &:hover {
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-color) 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(142, 36, 170, 0.5);
+  &:disabled {
+    background: #444 !important;
+    color: #aaa !important;
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 1;
   }
 `;
 
@@ -918,6 +948,12 @@ function ProfilePage({ onLogout, isAdmin }) {
     setShowMap(false);
   };
 
+  const isProfileFormValid =
+    editedData.fullName &&
+    editedData.phone &&
+    editedData.email &&
+    editedData.address;
+
   if (isLoadingProfile) {
     return (
       <ProfileContainer>
@@ -1146,17 +1182,18 @@ function ProfilePage({ onLogout, isAdmin }) {
               
               <FormGroup>
                 <Label htmlFor="address">Адрес</Label>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <Input
-                    type="text"
-                    id="address"
-                    name="address"
-                    value={editedData.address}
-                    onChange={handleChange}
-                    placeholder="Введите ваш адрес или выберите на карте"
-                    required
-                    style={{ flex: 1 }}
-                  />
+                <Input
+                  type="text"
+                  id="address"
+                  name="address"
+                  value={editedData.address}
+                  onChange={handleChange}
+                  placeholder="Введите ваш адрес или выберите на карте"
+                  required
+                  style={{ flex: 1 }}
+                  disabled
+                />
+                <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                   <button
                     type="button"
                     style={{
@@ -1164,16 +1201,19 @@ function ProfilePage({ onLogout, isAdmin }) {
                       color: '#fff',
                       border: 'none',
                       borderRadius: 'var(--border-radius)',
-                      padding: '0 18px',
-                      fontWeight: 600,
+                      padding: '16px 40px',
+                      fontWeight: 700,
                       cursor: 'pointer',
                       fontFamily: 'Montserrat, sans-serif',
-                      fontSize: 15,
-                      boxShadow: '0 4px 15px rgba(142, 36, 170, 0.3)'
+                      fontSize: 20,
+                      boxShadow: '0 4px 24px rgba(142, 36, 170, 0.3)',
+                      marginTop: 20,
+                      width: '100%',
+                      maxWidth: 320
                     }}
                     onClick={() => setShowMap(true)}
                   >
-                    Добавить
+                    Изменить адрес
                   </button>
                 </div>
               </FormGroup>
@@ -1184,7 +1224,7 @@ function ProfilePage({ onLogout, isAdmin }) {
                     Отмена
                   </CancelButton>
                 )}
-                <SaveButton type="submit" disabled={isLoading}>
+                <SaveButton type="submit" disabled={isLoading || !isProfileFormValid}>
                   {isLoading ? 'Сохранение...' : 'Сохранить'}
                 </SaveButton>
               </FormActions>

@@ -32,7 +32,13 @@ const PageContainer = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
-  
+  width: 100vw;
+  overflow-x: hidden;
+  @media (max-width: 600px) {
+    width: 100vw;
+    min-width: 0;
+    padding: 0;
+  }
   &::before {
     content: '';
     position: absolute;
@@ -54,6 +60,11 @@ const Content = styled.div`
   z-index: 1;
   animation: ${fadeUp} 0.6s ease-out;
   flex: 1;
+  width: 100%;
+  @media (max-width: 600px) {
+    padding: 24px 2vw 0 2vw;
+    max-width: 100vw;
+  }
 `;
 
 const PageContent = styled.div`
@@ -253,6 +264,7 @@ const PackagesList = styled.div`
   animation: ${fadeUp} 0.6s ease-out;
   animation-delay: 0.2s;
   animation-fill-mode: both;
+  align-items: center;
 `;
 
 const PackagesGrid = styled.div`
@@ -273,12 +285,19 @@ const PackageCard = styled.div`
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   border: 1.5px solid rgba(142, 36, 170, 0.18);
   transition: all 0.3s ease;
-  min-width: 380px;
   max-width: 480px;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  margin-left: auto;
+  margin-right: auto;
+  @media (max-width: 600px) {
+    max-width: 98vw;
+    padding: 18px 8px 18px 8px;
+    margin-bottom: 18px;
+    border-radius: 12px;
+  }
 
   &:hover {
     transform: translateY(-4px);
@@ -954,10 +973,10 @@ const ArchivedTitle = styled.div`
 `;
 
 const PACKAGE_STATUSES = {
-  created: 'Создана',
   in_transit: 'В пути',
   ready: 'Готова к получению',
-  cancelled: 'Отменена'
+  cancelled: 'Отменена',
+  pending: 'Создана'
 };
 
 const formatStatus = (status) => {
@@ -1106,37 +1125,6 @@ const NotifSpinner = styled.div`
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-  }
-`;
-
-const HistoryButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: rgba(45, 45, 45, 0.7);
-  color: var(--text-secondary);
-  border: 1px solid rgba(142, 36, 170, 0.2);
-  border-radius: var(--border-radius);
-  padding: 12px 18px;
-  margin-top: 30px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: 'Montserrat', sans-serif;
-  
-  &:hover {
-    background-color: rgba(45, 45, 45, 0.9);
-    color: var(--text-color);
-  }
-  
-  &.active {
-    background: rgba(142, 36, 170, 0.2);
-    color: var(--primary-light);
-    border-color: rgba(142, 36, 170, 0.4);
-  }
-  
-  svg {
-    width: 20px;
-    height: 20px;
   }
 `;
 
@@ -1444,45 +1432,91 @@ function PackagesPage({ isAdmin }) {
         <SearchContainer>
           <SearchInput 
             type="text" 
-            placeholder="Поиск по трек-номеру или описанию..." 
+            placeholder="Поиск по треку-коду" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </SearchContainer>
-        
+
+        <TabsContainer>
+          <Tab active={activeTab === 'active'} onClick={() => setActiveTab('active')}>
+            Активные
+          </Tab>
+          <Tab active={activeTab === 'history'} onClick={() => setActiveTab('history')}>
+            Архив
+          </Tab>
+        </TabsContainer>
+
         <PackagesContent>
           {isLoadingPackages ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '50px 0' }}>
               <LoadingAnimation />
             </div>
           ) : (
-            renderPackages()
+            <>
+              {activeTab === 'active' ? (
+                <PackagesGrid>
+                  {filteredPackages.length === 0 ? (
+                    <NoPackages>
+                      <p>У вас пока нет активных посылок</p>
+                    </NoPackages>
+                  ) : (
+                    filteredPackages.map(pkg => (
+                      <PackageItem 
+                        key={pkg.id} 
+                        packageData={pkg}
+                        onDelete={handleDelete}
+                        onEdit={openEditForm}
+                      />
+                    ))
+                  )}
+                </PackagesGrid>
+              ) : (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  minHeight: '50vh',
+                  width: '100%',
+                }}>
+                  {archivedPackages.length === 0 ? (
+                    <NoPackages style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minHeight: '280px',
+                      maxWidth: '400px',
+                      fontSize: '20px',
+                      background: 'rgba(45, 45, 45, 0.85)',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                    }}>
+                      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginBottom: 16, opacity: 0.7}}>
+                        <rect x="3" y="7" width="18" height="13" rx="3" stroke="#8e24aa" strokeWidth="2"/>
+                        <path d="M3 10L12 15L21 10" stroke="#8e24aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <rect x="7" y="3" width="10" height="4" rx="2" stroke="#8e24aa" strokeWidth="2"/>
+                      </svg>
+                      <div style={{fontWeight: 600, color: 'var(--primary-light)', marginBottom: 6}}>В архиве нет посылок</div>
+                      <div style={{color: 'var(--text-secondary)', fontSize: '16px'}}>Архив пуст — здесь будут ваши завершённые или удалённые посылки</div>
+                    </NoPackages>
+                  ) : (
+                    <PackagesGrid>
+                      {archivedPackages.map(packageItem => (
+                        <PackageItem 
+                          key={packageItem.id} 
+                          packageData={packageItem}
+                          onDelete={handleDelete}
+                          onRestore={handleRestore}
+                          archived={true}
+                        />
+                      ))}
+                    </PackagesGrid>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </PackagesContent>
-        
-        <HistoryButton 
-          onClick={() => setShowArchivedPackages(!showArchivedPackages)}
-          className={showArchivedPackages ? 'active' : ''}
-        >
-          {showArchivedPackages ? (
-            <>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Скрыть архив
-            </>
-          ) : (
-            <>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 8V21H3V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M23 3H1V8H23V3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M10 12H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Показать архив ({archivedPackages.length})
-            </>
-          )}
-        </HistoryButton>
         
         {showArchivedPackages && (
           <ArchivedSection>
