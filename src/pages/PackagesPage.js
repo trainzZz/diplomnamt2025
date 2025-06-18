@@ -330,17 +330,26 @@ const Status = styled.div`
       case 'в пути':
       case 'in_transit':
         return 'rgba(0, 150, 255, 0.2)';
+      case 'создана':
+      case 'created':
+        return 'rgba(255, 215, 0, 0.2)';
       case 'зарегистрирована':
       case 'pending':
       case 'registered':
         return 'rgba(142, 36, 170, 0.2)';
       case 'готова к получению':
       case 'ready':
-      case 'delivered':
         return 'rgba(0, 200, 83, 0.2)';
+      case 'получена':
+      case 'доставлена':
+      case 'delivered':
+        return 'rgba(156, 39, 176, 0.2)';
       case 'возвращено':
       case 'returned':
         return 'rgba(255, 87, 34, 0.2)';
+      case 'отменена':
+      case 'cancelled':
+        return 'rgba(150, 150, 150, 0.2)';
       default:
         return 'rgba(150, 150, 150, 0.2)';
     }
@@ -350,23 +359,32 @@ const Status = styled.div`
       case 'в пути':
       case 'in_transit':
         return '#0096ff';
+      case 'создана':
+      case 'created':
+        return '#ffd700';
       case 'зарегистрирована':
       case 'pending':
       case 'registered':
         return '#a04ed3';
       case 'готова к получению':
       case 'ready':
-      case 'delivered':
         return '#00c853';
+      case 'получена':
+      case 'доставлена':
+      case 'delivered':
+        return '#9C27B0';
       case 'возвращено':
       case 'returned':
         return '#ff5722';
+      case 'отменена':
+      case 'cancelled':
+        return '#969696';
       default:
         return '#969696';
     }
   }};
   font-family: 'Montserrat', sans-serif;
-  text-transform: capitalize;
+  /* text-transform: capitalize; */
 `;
 
 const PackageCardContent = styled.div`
@@ -998,6 +1016,33 @@ const getStatusColor = (status) => {
   }
 };
 
+// Объект для перевода статусов
+const statusTranslations = {
+  'created': 'Создана',
+  'in_transit': 'В пути',
+  'ready': 'Готова к получению',
+  'delivered': 'Доставлена',
+  'cancelled': 'Отменена',
+  'registered': 'Зарегистрирована',
+  'Delivered': 'Доставлена',
+  'Created': 'Создана',
+  'In Transit': 'В пути',
+  'Ready': 'Готова к получению',
+  'Cancelled': 'Отменена',
+  'Registered': 'Зарегистрирована'
+};
+
+// Функция для перевода статуса
+const getTranslatedStatus = (status) => {
+  return statusTranslations[status] || status;
+};
+
+// Функция для форматирования статуса: только первая буква заглавная, остальные строчные
+const formatStatusText = (text) => {
+  if (!text) return '';
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+};
+
 // Компонент для отображения одной посылки
 const PackageItem = ({ packageData, onDelete, onEdit, onRestore, archived }) => {
   const [notifEnabled, setNotifEnabled] = useState(!!packageData.telegramNotifications?.enabled);
@@ -1020,7 +1065,7 @@ const PackageItem = ({ packageData, onDelete, onEdit, onRestore, archived }) => 
     <PackageCard>
       <PackageCardHeader>
         <TrackingNumber>{packageData.trackingNumber}</TrackingNumber>
-        <Status status={packageData.status}>{formatStatus(packageData.status)}</Status>
+        <Status status={packageData.status}>{formatStatusText(getTranslatedStatus(packageData.status))}</Status>
       </PackageCardHeader>
       <PackageCardContent>
         {packageData.description && (
@@ -1081,7 +1126,7 @@ const PackageItem = ({ packageData, onDelete, onEdit, onRestore, archived }) => 
             </IconNotifButton>
           </>
         )}
-        {archived && (
+        {archived && !packageData.permanentlyArchived && (
           <IconNotifButton onClick={() => onRestore && onRestore(packageData.id)} title="Восстановить">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#fff" strokeWidth="2">
               <path d="M8 20L16 12L24 20" stroke="#00e676" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1334,7 +1379,7 @@ function PackagesPage({ isAdmin }) {
               <PackageCard key={pkg.id}>
                 <PackageCardHeader>
                   <TrackingNumber>{pkg.trackingNumber}</TrackingNumber>
-                  <Status status={pkg.status}>{formatStatus(pkg.status)}</Status>
+                  <Status status={pkg.status}>{formatStatusText(getTranslatedStatus(pkg.status))}</Status>
                 </PackageCardHeader>
                 <PackageCardContent>
                   {pkg.description && (
@@ -1386,7 +1431,7 @@ function PackagesPage({ isAdmin }) {
                     <td>{pkg.trackingNumber}</td>
                     <td>
                       <Status status={pkg.status} style={{ display: 'inline-block' }}>
-                        {formatStatus(pkg.status)}
+                        {formatStatusText(getTranslatedStatus(pkg.status))}
                       </Status>
                     </td>
                     <td>
@@ -1453,68 +1498,18 @@ function PackagesPage({ isAdmin }) {
               <LoadingAnimation />
             </div>
           ) : (
-            <>
-              {activeTab === 'active' ? (
-                <PackagesGrid>
-                  {filteredPackages.length === 0 ? (
-                    <NoPackages>
-                      <p>У вас пока нет активных посылок</p>
-                    </NoPackages>
-                  ) : (
-                    filteredPackages.map(pkg => (
-                      <PackageItem 
-                        key={pkg.id} 
-                        packageData={pkg}
-                        onDelete={handleDelete}
-                        onEdit={openEditForm}
-                      />
-                    ))
-                  )}
-                </PackagesGrid>
-              ) : (
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  minHeight: '50vh',
-                  width: '100%',
-                }}>
-                  {archivedPackages.length === 0 ? (
-                    <NoPackages style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minHeight: '280px',
-                      maxWidth: '400px',
-                      fontSize: '20px',
-                      background: 'rgba(45, 45, 45, 0.85)',
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-                    }}>
-                      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginBottom: 16, opacity: 0.7}}>
-                        <rect x="3" y="7" width="18" height="13" rx="3" stroke="#8e24aa" strokeWidth="2"/>
-                        <path d="M3 10L12 15L21 10" stroke="#8e24aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <rect x="7" y="3" width="10" height="4" rx="2" stroke="#8e24aa" strokeWidth="2"/>
-                      </svg>
-                      <div style={{fontWeight: 600, color: 'var(--primary-light)', marginBottom: 6}}>В архиве нет посылок</div>
-                      <div style={{color: 'var(--text-secondary)', fontSize: '16px'}}>Архив пуст — здесь будут ваши завершённые или удалённые посылки</div>
-                    </NoPackages>
-                  ) : (
-                    <PackagesGrid>
-                      {archivedPackages.map(packageItem => (
-                        <PackageItem 
-                          key={packageItem.id} 
-                          packageData={packageItem}
-                          onDelete={handleDelete}
-                          onRestore={handleRestore}
-                          archived={true}
-                        />
-                      ))}
-                    </PackagesGrid>
-                  )}
-                </div>
-              )}
-            </>
+            <PackagesGrid>
+              {(activeTab === 'active' ? filteredPackages : archivedPackages).map(pkg => (
+                <PackageItem
+                  key={pkg.id}
+                  packageData={pkg}
+                  onDelete={handleDelete}
+                  onEdit={openEditForm}
+                  onRestore={handleRestore}
+                  archived={activeTab !== 'active'}
+                />
+              ))}
+            </PackagesGrid>
           )}
         </PackagesContent>
         

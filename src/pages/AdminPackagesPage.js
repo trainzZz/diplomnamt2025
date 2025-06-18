@@ -21,14 +21,19 @@ const StatusBadge = styled.span`
       case 'в пути':
       case 'in_transit':
         return 'rgba(0, 150, 255, 0.2)';
+      case 'создана':
+      case 'created':
+        return 'rgba(255, 215, 0, 0.2)';
       case 'зарегистрирована':
       case 'pending':
       case 'registered':
         return 'rgba(142, 36, 170, 0.2)';
       case 'готова к получению':
       case 'ready':
-      case 'delivered':
         return 'rgba(0, 200, 83, 0.2)';
+      case 'получена':
+      case 'delivered':
+        return 'rgba(156, 39, 176, 0.2)';
       case 'возвращено':
       case 'returned':
         return 'rgba(255, 87, 34, 0.2)';
@@ -41,14 +46,19 @@ const StatusBadge = styled.span`
       case 'в пути':
       case 'in_transit':
         return '#0096ff';
+      case 'создана':
+      case 'created':
+        return '#ffd700';
       case 'зарегистрирована':
       case 'pending':
       case 'registered':
         return '#a04ed3';
       case 'готова к получению':
       case 'ready':
-      case 'delivered':
         return '#00c853';
+      case 'получена':
+      case 'delivered':
+        return '#9C27B0';
       case 'возвращено':
       case 'returned':
         return '#ff5722';
@@ -435,23 +445,18 @@ const CustomSelectStyles = createGlobalStyle`
   }
 `;
 
-// Функция для форматирования статуса
-const formatStatus = (status) => {
-  if (!status) return 'Неизвестно';
-  switch (status.toLowerCase()) {
-    case 'created':
-      return 'Создана';
-    case 'in_transit':
-      return 'В пути';
-    case 'ready':
-      return 'Готова к получению';
-    case 'cancelled':
-      return 'Отменена';
-    case 'pending':
-      return 'Создана';
-    default:
-      return status;
-  }
+// Объект для перевода статусов
+const statusTranslations = {
+  'created': 'Создана',
+  'in_transit': 'В пути',
+  'ready': 'Готова к получению',
+  'delivered': 'Получена',
+  'cancelled': 'Отменена'
+};
+
+// Функция для перевода статуса
+const getTranslatedStatus = (status) => {
+  return statusTranslations[status] || status;
 };
 
 // Функция для отправки уведомления через API
@@ -512,11 +517,22 @@ function AdminPackagesPage() {
     userId: ''
   });
 
-  // Только нужные статусы
+  // Статусы для фильтрации
+  const statusFilters = [
+    { value: 'all', label: 'Все статусы' },
+    { value: 'created', label: 'Создана' },
+    { value: 'in_transit', label: 'В пути' },
+    { value: 'ready', label: 'Готова к получению' },
+    { value: 'delivered', label: 'Получена' },
+    { value: 'cancelled', label: 'Отменена' }
+  ];
+
+  // Статусы для форм редактирования/добавления
   const statusOptions = [
     { value: 'created', label: 'Создана' },
     { value: 'in_transit', label: 'В пути' },
     { value: 'ready', label: 'Готова к получению' },
+    { value: 'delivered', label: 'Получена' },
     { value: 'cancelled', label: 'Отменена' }
   ];
 
@@ -613,21 +629,28 @@ function AdminPackagesPage() {
     e.preventDefault();
     setTrackError('');
     if (!currentPackage) return;
+    
     // Проверка уникальности трек-номера (разрешить текущей посылке)
     if (packages.some(pkg => pkg.trackingNumber === formData.trackingNumber && pkg.id !== currentPackage.id)) {
       setTrackError('Посылка с таким трек-номером уже существует!');
       return;
     }
+    
     try {
       const oldStatus = currentPackage.status;
+      const isDelivered = formData.status === 'delivered';
+      
       await updatePackage(currentPackage.id, {
         trackingNumber: formData.trackingNumber,
         description: formData.description,
         weight: formData.weight,
         dimensions: formData.dimensions,
         status: formData.status,
-        userId: formData.userId
+        userId: formData.userId,
+        archived: isDelivered ? true : formData.archived || false,
+        permanentlyArchived: isDelivered
       });
+      
       if (oldStatus !== formData.status) {
         try {
           await sendStatusNotification(currentPackage.id, formData.status);
@@ -635,6 +658,7 @@ function AdminPackagesPage() {
           alert('Посылка обновлена, но возникла ошибка при отправке уведомления');
         }
       }
+      
       setShowEditForm(false);
       setCurrentPackage(null);
       await fetchPackages();
@@ -928,10 +952,9 @@ function AdminPackagesPage() {
               style={{ width: '100%', padding: 8, borderRadius: 8, background: 'rgba(20,20,20,0.7)', color: 'var(--text-color)', border: '1px solid #444', fontSize: 15 }}
             >
               <option value="">Выберите статус...</option>
-              <option value="created">Создана</option>
-              <option value="in_transit">В пути</option>
-              <option value="ready">Готова к получению</option>
-              <option value="cancelled">Отменена</option>
+              {statusFilters.map(status => (
+                <option key={status.value} value={status.value}>{status.label}</option>
+              ))}
             </select>
           </div>
           {/* Фильтр по дате */}
@@ -1094,27 +1117,15 @@ function AdminPackagesPage() {
                   id="status"
                   name="status"
                   value={formData.status}
-                  onChange={handleInputChange}
-                  required
-                  style={{
-                    background: 'rgba(20,20,20,0.7)',
-                    color: 'var(--text-color)',
-                    border: '1px solid #444',
-                    borderRadius: '10px',
-                    padding: '12px',
-                    fontSize: '15px',
-                    fontFamily: 'Montserrat, sans-serif',
-                    outline: 'none',
-                    marginBottom: 0,
-                    transition: 'box-shadow 0.2s',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
-                  }}
+                  onChange={e => setFormData({ ...formData, status: e.target.value })}
+                  style={{ background: '#23232e', color: '#fff', border: '1px solid #8645FF' }}
                 >
                   <option value="" style={{ background: '#23232e', color: '#bbb' }}>Выберите статус...</option>
-                  <option value="created" style={{ background: '#23232e', color: '#fff' }}>Создана</option>
-                  <option value="in_transit" style={{ background: '#23232e', color: '#fff' }}>В пути</option>
-                  <option value="ready" style={{ background: '#23232e', color: '#fff' }}>Готова к получению</option>
-                  <option value="cancelled" style={{ background: '#23232e', color: '#fff' }}>Отменена</option>
+                  {Object.entries(statusTranslations).map(([value, label]) => (
+                    <option key={value} value={value} style={{ background: '#23232e', color: '#fff' }}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
               </div>
               
@@ -1266,27 +1277,15 @@ function AdminPackagesPage() {
                   id="status-edit"
                   name="status"
                   value={formData.status}
-                  onChange={handleInputChange}
-                  required
-                  style={{
-                    background: 'rgba(20,20,20,0.7)',
-                    color: 'var(--text-color)',
-                    border: '1px solid #444',
-                    borderRadius: '10px',
-                    padding: '12px',
-                    fontSize: '15px',
-                    fontFamily: 'Montserrat, sans-serif',
-                    outline: 'none',
-                    marginBottom: 0,
-                    transition: 'box-shadow 0.2s',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
-                  }}
+                  onChange={e => setFormData({ ...formData, status: e.target.value })}
+                  style={{ background: '#23232e', color: '#fff', border: '1px solid #8645FF' }}
                 >
                   <option value="" style={{ background: '#23232e', color: '#bbb' }}>Выберите статус...</option>
-                  <option value="created" style={{ background: '#23232e', color: '#fff' }}>Создана</option>
-                  <option value="in_transit" style={{ background: '#23232e', color: '#fff' }}>В пути</option>
-                  <option value="ready" style={{ background: '#23232e', color: '#fff' }}>Готова к получению</option>
-                  <option value="cancelled" style={{ background: '#23232e', color: '#fff' }}>Отменена</option>
+                  {Object.entries(statusTranslations).map(([value, label]) => (
+                    <option key={value} value={value} style={{ background: '#23232e', color: '#fff' }}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
               </div>
               
@@ -1357,8 +1356,8 @@ function AdminPackagesPage() {
                   <td>{packageItem.weight || '-'}</td>
                   <td>{packageItem.dimensions || '-'}</td>
                   <td>
-                    <StatusBadge $status={packageItem.status}>
-                      {formatStatus(packageItem.status)}
+                    <StatusBadge $status={getTranslatedStatus(packageItem.status)}>
+                      {getTranslatedStatus(packageItem.status)}
                     </StatusBadge>
                   </td>
                   <td>{packageItem.createdAt ? new Date(packageItem.createdAt.seconds * 1000).toLocaleDateString() : '-'}</td>

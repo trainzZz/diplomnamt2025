@@ -67,32 +67,55 @@ const featureCardGradient = keyframes`
   100% { background-position: 0% 50%; }
 `;
 
+const featuresGradient = keyframes`
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+`;
+
 const Features = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 32px;
   justify-content: center;
   margin-bottom: 48px;
+  padding: 36px 0;
+  border-radius: 32px;
+  backdrop-filter: blur(8px);
+`;
+
+const cardGradient = keyframes`
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 `;
 
 const FeatureCard = styled.div`
-  background: linear-gradient(135deg, #2d223a 0%, var(--primary-color) 80%, #23232e 120%);
-  background-size: 200% 200%;
-  animation: ${featureCardGradient} 18s ease-in-out infinite;
-  border-radius: var(--border-radius);
-  box-shadow: 0 8px 32px rgba(142,36,170,0.18), 0 1.5px 8px rgba(0,0,0,0.18);
+  background: linear-gradient(120deg, rgba(255,255,255,0.18) 0%, rgba(160,132,232,0.22) 50%, rgba(142,36,170,0.13) 100%);
+  background-size: 250% 250%;
+  animation: ${cardGradient} 8s ease-in-out infinite;
+  border-radius: 22px;
+  box-shadow: 0 4px 24px 0 rgba(80, 60, 120, 0.10), 0 1.5px 8px rgba(0,0,0,0.10);
   padding: 32px 28px;
   min-width: 260px;
   max-width: 340px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: transform 0.2s, box-shadow 0.2s;
-  border: 1.5px solid rgba(142, 36, 170, 0.18);
+  border: none;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  transition: box-shadow 0.25s, transform 0.25s, background 0.25s;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(30,30,40,0.10);
+  & > * {
+    color: #fff;
+  }
   &:hover {
+    background: linear-gradient(120deg, rgba(160,132,232,0.28) 0%, rgba(255,255,255,0.22) 60%, rgba(142,36,170,0.18) 100%);
+    box-shadow: 0 12px 36px 0 rgba(142,36,170,0.13), 0 0 0 2px #a084e8;
     transform: translateY(-8px) scale(1.03);
-    box-shadow: 0 16px 40px rgba(142,36,170,0.28);
-    border-color: var(--primary-light);
   }
 `;
 

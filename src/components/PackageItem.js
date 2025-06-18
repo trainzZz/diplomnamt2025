@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { updatePackage } from '../firebase';
+import { MdNotificationsActive, MdNotificationsOff, MdArchive, MdUnarchive, MdExpandMore } from 'react-icons/md';
 
 const PackageCard = styled.div`
   background: linear-gradient(135deg, var(--card-color) 0%, rgba(35, 35, 35, 1) 100%);
@@ -93,13 +95,22 @@ const StatusBadge = styled.span`
   letter-spacing: 0.5px;
   box-shadow: var(--elevation-1);
   background: ${props => {
-    switch (props.status) {
-      case 'В пути':
+    switch (props.status.toLowerCase()) {
+      case 'в пути':
+      case 'in_transit':
         return 'linear-gradient(to right, var(--warning-color), #ff6d00)';
-      case 'Зарегистрирована':
+      case 'создана':
+      case 'created':
+        return 'linear-gradient(to right, #ffd700, #ffa000)';
+      case 'зарегистрирована':
+      case 'registered':
         return 'linear-gradient(to right, var(--text-secondary), #757575)';
-      case 'Готова к получению':
+      case 'готова к получению':
+      case 'ready':
         return 'linear-gradient(to right, var(--success-color), #00b248)';
+      case 'получена':
+      case 'delivered':
+        return 'linear-gradient(to right, #9C27B0, #673AB7)';
       default:
         return 'linear-gradient(to right, var(--text-secondary), #757575)';
     }
@@ -111,11 +122,24 @@ const StatusBadge = styled.span`
   &:hover {
     transform: scale(1.05);
     box-shadow: 0 0 10px ${props => {
-      switch (props.status) {
-        case 'В пути': return 'rgba(255, 171, 0, 0.5)';
-        case 'Зарегистрирована': return 'rgba(176, 176, 176, 0.5)';
-        case 'Готова к получению': return 'rgba(0, 200, 83, 0.5)';
-        default: return 'rgba(176, 176, 176, 0.5)';
+      switch (props.status.toLowerCase()) {
+        case 'в пути':
+        case 'in_transit':
+          return 'rgba(255, 171, 0, 0.5)';
+        case 'создана':
+        case 'created':
+          return 'rgba(255, 215, 0, 0.5)';
+        case 'зарегистрирована':
+        case 'registered':
+          return 'rgba(176, 176, 176, 0.5)';
+        case 'готова к получению':
+        case 'ready':
+          return 'rgba(0, 200, 83, 0.5)';
+        case 'получена':
+        case 'delivered':
+          return 'rgba(156, 39, 176, 0.5)';
+        default:
+          return 'rgba(176, 176, 176, 0.5)';
       }
     }};
   }
@@ -158,46 +182,36 @@ const Actions = styled.div`
 `;
 
 const ActionButton = styled.button`
-  background-color: transparent;
-  border: 1px solid ${props => props.danger ? 'var(--danger-color)' : 'var(--primary-color)'};
-  color: ${props => props.danger ? 'var(--danger-color)' : 'var(--primary-light)'};
-  border-radius: var(--border-radius);
-  padding: 10px 16px;
-  font-weight: 500;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-color);
+  background: rgba(134, 69, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  z-index: 1;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 0%;
-    height: 100%;
-    background: ${props => 
-      props.danger 
-        ? 'linear-gradient(135deg, var(--danger-color) 0%, #b71c1c 100%)'
-        : 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%)'
-    };
-    transition: all 0.3s ease;
-    z-index: -1;
-    opacity: 0.9;
-  }
-  
+  margin-left: 8px;
+  padding: 0;
+
   &:hover {
-    color: white;
-    box-shadow: ${props => 
-      props.danger 
-        ? '0 0 15px rgba(255, 61, 0, 0.4)'
-        : 'var(--glow)'
-    };
+    transform: ${props => props.disabled ? 'none' : 'translateY(-2px)'};
+    box-shadow: ${props => props.disabled ? 'none' : '0 4px 12px rgba(134, 69, 255, 0.2)'};
   }
-  
-  &:hover::before {
-    width: 100%;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: var(--text-secondary);
+    background: rgba(150, 150, 150, 0.1);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    fill: ${props => props.disabled ? 'var(--text-secondary)' : 'var(--accent-color)'};
+    transition: fill 0.3s ease;
   }
 `;
 
@@ -262,9 +276,26 @@ const HistoryItem = styled.div`
   }
 `;
 
-function PackageItem({ packageData }) {
+// Добавляем объект для перевода статусов
+const statusTranslations = {
+  'created': 'Создана',
+  'in_transit': 'В пути',
+  'ready': 'Готова к получению',
+  'delivered': 'Получена',
+  'cancelled': 'Отменена',
+  'registered': 'Зарегистрирована',
+  'Delivered': 'Получена',
+  'Created': 'Создана',
+  'In Transit': 'В пути',
+  'Ready': 'Готова к получению',
+  'Cancelled': 'Отменена',
+  'Registered': 'Зарегистрирована'
+};
+
+const PackageItem = ({ packageData, onArchiveToggle }) => {
   const { trackingNumber, status, origin = 'Китай', destination = 'Россия', lastUpdate = '20.05.2023' } = packageData;
   const [expanded, setExpanded] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   
   // Демо-данные для истории посылки
   const packageHistory = [
@@ -273,11 +304,37 @@ function PackageItem({ packageData }) {
     { date: '12.05.2023', status: 'Отправлена', location: 'Гуанчжоу, Китай' },
   ];
   
+  // Функция для перевода статуса
+  const getTranslatedStatus = (status) => {
+    return statusTranslations[status] || status;
+  };
+  
+  const handleArchiveToggle = async () => {
+    try {
+      await updatePackage(packageData.id, {
+        ...packageData,
+        archived: !packageData.archived
+      });
+      
+      if (onArchiveToggle) {
+        onArchiveToggle();
+      }
+    } catch (error) {
+      console.error('Ошибка при изменении статуса архивации:', error);
+      alert('Произошла ошибка при изменении статуса архивации');
+    }
+  };
+  
+  // Определяем, нужно ли показывать кнопку разархивации
+  const showUnarchiveButton = !packageData.permanentlyArchived;
+
   return (
     <PackageCard>
       <PackageHeader>
         <TrackingNumber>{trackingNumber}</TrackingNumber>
-        <StatusBadge status={status}>{status}</StatusBadge>
+        <StatusBadge status={status}>
+          {getTranslatedStatus(status)}
+        </StatusBadge>
       </PackageHeader>
       
       <PackageDetails>
@@ -322,16 +379,40 @@ function PackageItem({ packageData }) {
       )}
       
       <Actions>
+        <ActionButton 
+          onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+          title={notificationsEnabled ? "Отключить уведомления" : "Включить уведомления"}
+        >
+          {notificationsEnabled ? (
+            <MdNotificationsActive size={22} color="#00e676" />
+          ) : (
+            <MdNotificationsOff size={22} color="#FF0000" />
+          )}
+        </ActionButton>
+
+        {(!packageData.permanentlyArchived || !packageData.archived) && (
+          <ActionButton
+            onClick={handleArchiveToggle}
+            title={packageData.archived ? 'Вернуть из архива' : 'Архивировать'}
+          >
+            {packageData.archived ? (
+              <MdUnarchive size={22} color="#00e676" />
+            ) : (
+              <MdArchive size={22} color="#8e24aa" />
+            )}
+          </ActionButton>
+        )}
+
         <ExpandButton onClick={() => setExpanded(!expanded)}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d={expanded ? "M6 15L12 9L18 15" : "M6 9L12 15L18 9"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          <MdExpandMore size={20} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }} />
         </ExpandButton>
-        <ActionButton>Подробнее</ActionButton>
-        <ActionButton danger>Удалить</ActionButton>
       </Actions>
     </PackageCard>
   );
-}
+};
+
+PackageItem.defaultProps = {
+  onArchiveToggle: () => {} // Пустая функция по умолчанию
+};
 
 export default PackageItem; 

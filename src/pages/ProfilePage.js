@@ -520,14 +520,22 @@ const AdminPanelButton = styled(Link)`
   }
 `;
 
+const EmptyMessage = styled.div`
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 20px;
+  font-size: 16px;
+`;
+
 function ProfilePage({ onLogout, isAdmin }) {
   const [packages, setPackages] = useState([]);
-  
+  const [filteredPackages, setFilteredPackages] = useState([]);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [showArchived, setShowArchived] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [newPackage, setNewPackage] = useState({ trackingNumber: '', description: '' });
   const [isLoading, setIsLoading] = useState(false);
-  const [filteredPackages, setFilteredPackages] = useState(packages);
   const [isEditing, setIsEditing] = useState(false);
   const [userData, setUserData] = useState({
     fullName: '',
@@ -539,7 +547,6 @@ function ProfilePage({ onLogout, isAdmin }) {
   });
   
   // Новые состояния
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isProfileSetupRequired, setIsProfileSetupRequired] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -629,7 +636,7 @@ function ProfilePage({ onLogout, isAdmin }) {
           const userPackages = await getUserPackages(user.uid);
           if (userPackages) {
             setPackages(userPackages);
-            setFilteredPackages(userPackages);
+            setFilteredPackages(userPackages.filter(pkg => pkg.archived === showArchived));
           }
         }
       } catch (error) {
@@ -640,7 +647,7 @@ function ProfilePage({ onLogout, isAdmin }) {
     };
     
     loadUserData();
-  }, []);
+  }, [showArchived]);
 
   useEffect(() => {
     // Фильтрация посылок при изменении searchTerm
@@ -954,6 +961,32 @@ function ProfilePage({ onLogout, isAdmin }) {
     editedData.email &&
     editedData.address;
 
+  const fetchUserPackages = async () => {
+    try {
+      setIsLoadingProfile(true);
+      const userPackages = await getUserPackages(auth.currentUser.uid);
+      setPackages(userPackages);
+      setFilteredPackages(userPackages.filter(pkg => pkg.archived === showArchived));
+    } catch (error) {
+      console.error('Ошибка при загрузке посылок:', error);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserPackages();
+  }, [showArchived]);
+
+  const handleArchiveToggle = () => {
+    fetchUserPackages();
+  };
+
+  // Добавляем переключатель для отображения архивных посылок
+  const toggleArchivedView = () => {
+    setShowArchived(!showArchived);
+  };
+
   if (isLoadingProfile) {
     return (
       <ProfileContainer>
@@ -1182,38 +1215,39 @@ function ProfilePage({ onLogout, isAdmin }) {
               
               <FormGroup>
                 <Label htmlFor="address">Адрес</Label>
-                <Input
-                  type="text"
-                  id="address"
-                  name="address"
-                  value={editedData.address}
-                  onChange={handleChange}
-                  placeholder="Введите ваш адрес или выберите на карте"
-                  required
-                  style={{ flex: 1 }}
-                  disabled
-                />
-                <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Input
+                    type="text"
+                    id="address"
+                    name="address"
+                    value={editedData.address}
+                    onChange={handleChange}
+                    placeholder="Введите ваш адрес или выберите на карте"
+                    required
+                    style={{ flex: 1 }}
+                    disabled
+                  />
                   <button
                     type="button"
-                    style={{
-                      background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%)',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 'var(--border-radius)',
-                      padding: '16px 40px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      fontFamily: 'Montserrat, sans-serif',
-                      fontSize: 20,
-                      boxShadow: '0 4px 24px rgba(142, 36, 170, 0.3)',
-                      marginTop: 20,
-                      width: '100%',
-                      maxWidth: 320
-                    }}
                     onClick={() => setShowMap(true)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '50%',
+                      transition: 'background-color 0.2s',
+                      color: 'var(--primary-color)'
+                    }}
+                    title="Изменить адрес"
                   >
-                    Изменить адрес
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                   </button>
                 </div>
               </FormGroup>
