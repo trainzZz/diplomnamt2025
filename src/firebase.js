@@ -402,7 +402,8 @@ export {
   getAllPackages,
   deletePackage,
   updatePackage,
-  checkIsAdmin
+  checkIsAdmin,
+  allStatuses
 };
 export default app; 
 

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LoadingAnimation from '../components/LoadingAnimation';
-import { addPackage, auth, logoutUser } from '../firebase';
+import { addPackage, auth, logoutUser, getAllPackages } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 
 const gradientAnimation = keyframes`
@@ -265,15 +265,31 @@ function AddPackagePage({ onLogout }) {
     carrier: '',
     origin: '',
     destination: 'Россия',
-    status: 'registered'
+    status: 'created'
   });
+  const [trackError, setTrackError] = useState('');
+  const [packages, setPackages] = useState([]);
   
-  const PACKAGE_STATUSES = {
-    created: 'Создана',
-    in_transit: 'В пути',
-    ready: 'Готова к получению',
-    cancelled: 'Отменена'
-  };
+  const statusOptions = [
+    { value: 'created', label: 'Создана' },
+    { value: 'in_transit', label: 'В пути' },
+    { value: 'ready', label: 'Готова к получению' },
+    { value: 'delivered', label: 'Получена' },
+    { value: 'cancelled', label: 'Отменена' }
+  ];
+  
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const allPackages = await getAllPackages();
+        setPackages(allPackages);
+      } catch (error) {
+        console.error('Ошибка при загрузке посылок:', error);
+      }
+    };
+
+    fetchPackages();
+  }, []);
   
   const handleChange = (e) => {
     setFormData({
@@ -284,50 +300,27 @@ function AddPackagePage({ onLogout }) {
   
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    
+    setTrackError('');
+
+    if (packages.some(pkg => pkg.trackingNumber === formData.trackingNumber)) {
+      setTrackError('Посылка с таким трек-номером уже существует!');
+      return;
+    }
+
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('Пользователь не аутентифицирован');
-      }
+      setIsLoading(true);
+      const isDelivered = formData.status === 'delivered';
       
-      const packageData = {
-        trackingNumber: formData.trackingNumber,
-        description: formData.description || '',
-        carrier: formData.carrier || '',
-        status: formData.status,
-        statusText: PACKAGE_STATUSES[formData.status],
-        origin: formData.origin || 'Неизвестно',
-        destination: formData.destination || 'Россия',
-        lastUpdate: new Date().toLocaleDateString('ru-RU'),
-        telegramNotifications: {
-          enabled: false,
-          notifyOnStatuses: []
-        }
-      };
-      
-      await addPackage(user.uid, packageData);
-      
-      // Сбрасываем форму
-      setFormData({
-        trackingNumber: '',
-        description: '',
-        carrier: '',
-        origin: '',
-        destination: 'Россия',
-        status: 'registered'
+      await addPackage({
+        ...formData,
+        archived: isDelivered,
+        permanentlyArchived: isDelivered
       });
       
-      // Показываем сообщение об успехе
-      setShowSuccess(true);
-      
-      // Через 3 секунды перенаправляем на страницу с посылками
-      setTimeout(() => {
-        navigate('/packages');
-      }, 3000);
+      navigate('/admin/packages');
     } catch (error) {
       console.error('Ошибка при добавлении посылки:', error);
+      alert('Произошла ошибка при добавлении посылки');
     } finally {
       setIsLoading(false);
     }
@@ -390,8 +383,11 @@ function AddPackagePage({ onLogout }) {
                   value={formData.status}
                   onChange={handleChange}
                 >
-                  {Object.entries(PACKAGE_STATUSES).map(([code, text]) => (
-                    <option key={code} value={code}>{text}</option>
+                  <option value="" style={{ background: '#23232e', color: '#bbb' }}>Выберите статус...</option>
+                  {statusOptions.map((option) => (
+                    <option key={option.value} value={option.value} style={{ background: '#23232e', color: '#fff' }}>
+                      {option.label}
+                    </option>
                   ))}
                 </Select>
               </FormGroup>

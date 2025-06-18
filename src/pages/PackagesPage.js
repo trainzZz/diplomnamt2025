@@ -32,7 +32,13 @@ const PageContainer = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
-  
+  width: 100vw;
+  overflow-x: hidden;
+  @media (max-width: 600px) {
+    width: 100vw;
+    min-width: 0;
+    padding: 0;
+  }
   &::before {
     content: '';
     position: absolute;
@@ -54,6 +60,11 @@ const Content = styled.div`
   z-index: 1;
   animation: ${fadeUp} 0.6s ease-out;
   flex: 1;
+  width: 100%;
+  @media (max-width: 600px) {
+    padding: 24px 2vw 0 2vw;
+    max-width: 100vw;
+  }
 `;
 
 const PageContent = styled.div`
@@ -253,6 +264,7 @@ const PackagesList = styled.div`
   animation: ${fadeUp} 0.6s ease-out;
   animation-delay: 0.2s;
   animation-fill-mode: both;
+  align-items: center;
 `;
 
 const PackagesGrid = styled.div`
@@ -273,12 +285,19 @@ const PackageCard = styled.div`
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   border: 1.5px solid rgba(142, 36, 170, 0.18);
   transition: all 0.3s ease;
-  min-width: 380px;
   max-width: 480px;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  margin-left: auto;
+  margin-right: auto;
+  @media (max-width: 600px) {
+    max-width: 98vw;
+    padding: 18px 8px 18px 8px;
+    margin-bottom: 18px;
+    border-radius: 12px;
+  }
 
   &:hover {
     transform: translateY(-4px);
@@ -311,17 +330,26 @@ const Status = styled.div`
       case 'в пути':
       case 'in_transit':
         return 'rgba(0, 150, 255, 0.2)';
+      case 'создана':
+      case 'created':
+        return 'rgba(255, 215, 0, 0.2)';
       case 'зарегистрирована':
       case 'pending':
       case 'registered':
         return 'rgba(142, 36, 170, 0.2)';
       case 'готова к получению':
       case 'ready':
-      case 'delivered':
         return 'rgba(0, 200, 83, 0.2)';
+      case 'получена':
+      case 'доставлена':
+      case 'delivered':
+        return 'rgba(156, 39, 176, 0.2)';
       case 'возвращено':
       case 'returned':
         return 'rgba(255, 87, 34, 0.2)';
+      case 'отменена':
+      case 'cancelled':
+        return 'rgba(150, 150, 150, 0.2)';
       default:
         return 'rgba(150, 150, 150, 0.2)';
     }
@@ -331,23 +359,32 @@ const Status = styled.div`
       case 'в пути':
       case 'in_transit':
         return '#0096ff';
+      case 'создана':
+      case 'created':
+        return '#ffd700';
       case 'зарегистрирована':
       case 'pending':
       case 'registered':
         return '#a04ed3';
       case 'готова к получению':
       case 'ready':
-      case 'delivered':
         return '#00c853';
+      case 'получена':
+      case 'доставлена':
+      case 'delivered':
+        return '#9C27B0';
       case 'возвращено':
       case 'returned':
         return '#ff5722';
+      case 'отменена':
+      case 'cancelled':
+        return '#969696';
       default:
         return '#969696';
     }
   }};
   font-family: 'Montserrat', sans-serif;
-  text-transform: capitalize;
+  /* text-transform: capitalize; */
 `;
 
 const PackageCardContent = styled.div`
@@ -954,10 +991,10 @@ const ArchivedTitle = styled.div`
 `;
 
 const PACKAGE_STATUSES = {
-  created: 'Создана',
   in_transit: 'В пути',
   ready: 'Готова к получению',
-  cancelled: 'Отменена'
+  cancelled: 'Отменена',
+  pending: 'Создана'
 };
 
 const formatStatus = (status) => {
@@ -977,6 +1014,33 @@ const getStatusColor = (status) => {
     default:
       return '#757575';
   }
+};
+
+// Объект для перевода статусов
+const statusTranslations = {
+  'created': 'Создана',
+  'in_transit': 'В пути',
+  'ready': 'Готова к получению',
+  'delivered': 'Доставлена',
+  'cancelled': 'Отменена',
+  'registered': 'Зарегистрирована',
+  'Delivered': 'Доставлена',
+  'Created': 'Создана',
+  'In Transit': 'В пути',
+  'Ready': 'Готова к получению',
+  'Cancelled': 'Отменена',
+  'Registered': 'Зарегистрирована'
+};
+
+// Функция для перевода статуса
+const getTranslatedStatus = (status) => {
+  return statusTranslations[status] || status;
+};
+
+// Функция для форматирования статуса: только первая буква заглавная, остальные строчные
+const formatStatusText = (text) => {
+  if (!text) return '';
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 };
 
 // Компонент для отображения одной посылки
@@ -1001,7 +1065,7 @@ const PackageItem = ({ packageData, onDelete, onEdit, onRestore, archived }) => 
     <PackageCard>
       <PackageCardHeader>
         <TrackingNumber>{packageData.trackingNumber}</TrackingNumber>
-        <Status status={packageData.status}>{formatStatus(packageData.status)}</Status>
+        <Status status={packageData.status}>{formatStatusText(getTranslatedStatus(packageData.status))}</Status>
       </PackageCardHeader>
       <PackageCardContent>
         {packageData.description && (
@@ -1062,7 +1126,7 @@ const PackageItem = ({ packageData, onDelete, onEdit, onRestore, archived }) => 
             </IconNotifButton>
           </>
         )}
-        {archived && (
+        {archived && !packageData.permanentlyArchived && packageData.status !== 'delivered' && packageData.status !== 'Delivered' && (
           <IconNotifButton onClick={() => onRestore && onRestore(packageData.id)} title="Восстановить">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#fff" strokeWidth="2">
               <path d="M8 20L16 12L24 20" stroke="#00e676" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1106,37 +1170,6 @@ const NotifSpinner = styled.div`
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-  }
-`;
-
-const HistoryButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: rgba(45, 45, 45, 0.7);
-  color: var(--text-secondary);
-  border: 1px solid rgba(142, 36, 170, 0.2);
-  border-radius: var(--border-radius);
-  padding: 12px 18px;
-  margin-top: 30px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: 'Montserrat', sans-serif;
-  
-  &:hover {
-    background-color: rgba(45, 45, 45, 0.9);
-    color: var(--text-color);
-  }
-  
-  &.active {
-    background: rgba(142, 36, 170, 0.2);
-    color: var(--primary-light);
-    border-color: rgba(142, 36, 170, 0.4);
-  }
-  
-  svg {
-    width: 20px;
-    height: 20px;
   }
 `;
 
@@ -1346,7 +1379,7 @@ function PackagesPage({ isAdmin }) {
               <PackageCard key={pkg.id}>
                 <PackageCardHeader>
                   <TrackingNumber>{pkg.trackingNumber}</TrackingNumber>
-                  <Status status={pkg.status}>{formatStatus(pkg.status)}</Status>
+                  <Status status={pkg.status}>{formatStatusText(getTranslatedStatus(pkg.status))}</Status>
                 </PackageCardHeader>
                 <PackageCardContent>
                   {pkg.description && (
@@ -1398,7 +1431,7 @@ function PackagesPage({ isAdmin }) {
                     <td>{pkg.trackingNumber}</td>
                     <td>
                       <Status status={pkg.status} style={{ display: 'inline-block' }}>
-                        {formatStatus(pkg.status)}
+                        {formatStatusText(getTranslatedStatus(pkg.status))}
                       </Status>
                     </td>
                     <td>
@@ -1444,45 +1477,41 @@ function PackagesPage({ isAdmin }) {
         <SearchContainer>
           <SearchInput 
             type="text" 
-            placeholder="Поиск по трек-номеру или описанию..." 
+            placeholder="Поиск по треку-коду" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </SearchContainer>
-        
+
+        <TabsContainer>
+          <Tab active={activeTab === 'active'} onClick={() => setActiveTab('active')}>
+            Активные
+          </Tab>
+          <Tab active={activeTab === 'history'} onClick={() => setActiveTab('history')}>
+            Архив
+          </Tab>
+        </TabsContainer>
+
         <PackagesContent>
           {isLoadingPackages ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '50px 0' }}>
               <LoadingAnimation />
             </div>
           ) : (
-            renderPackages()
+            <PackagesGrid>
+              {(activeTab === 'active' ? filteredPackages : archivedPackages).map(pkg => (
+                <PackageItem
+                  key={pkg.id}
+                  packageData={pkg}
+                  onDelete={handleDelete}
+                  onEdit={openEditForm}
+                  onRestore={handleRestore}
+                  archived={activeTab !== 'active'}
+                />
+              ))}
+            </PackagesGrid>
           )}
         </PackagesContent>
-        
-        <HistoryButton 
-          onClick={() => setShowArchivedPackages(!showArchivedPackages)}
-          className={showArchivedPackages ? 'active' : ''}
-        >
-          {showArchivedPackages ? (
-            <>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Скрыть архив
-            </>
-          ) : (
-            <>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 8V21H3V8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M23 3H1V8H23V3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M10 12H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Показать архив ({archivedPackages.length})
-            </>
-          )}
-        </HistoryButton>
         
         {showArchivedPackages && (
           <ArchivedSection>

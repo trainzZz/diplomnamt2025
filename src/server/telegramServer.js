@@ -8,27 +8,24 @@ const path = require('path');
 const admin = require('firebase-admin');
 const { getFirestore } = require('firebase-admin/firestore');
 
-// Инициализация Firebase Admin SDK
+// ЗАМЕНИТЕ ЭТО: Путь к вашему файлу ключа сервисного аккаунта
+const serviceAccount = require('./serviceAccountKey.json'); 
+// ПОКА ЧТО ЗАКОММЕНТИРОВАНО - РАСКОММЕНТИРУЙТЕ И УКАЖИТЕ ПРАВИЛЬНЫЙ ПУТЬ ПОСЛЕ ЗАГРУЗКИ КЛЮЧА
+
 try {
+  // Проверяем, инициализировано ли уже приложение по умолчанию
   if (admin.apps.length === 0) {
     admin.initializeApp({
-      credential: admin.credential.cert({
-        type: "service_account",
-        project_id: process.env.FIREBASE_PROJECT_ID,
-        private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-        private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        client_email: process.env.FIREBASE_CLIENT_EMAIL,
-        client_id: process.env.FIREBASE_CLIENT_ID,
-        auth_uri: "https://accounts.google.com/o/oauth2/auth",
-        token_uri: "https://oauth2.googleapis.com/token",
-        auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-        client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL
-      })
+      credential: admin.credential.cert(serviceAccount) // ПОКА ЧТО ЗАКОММЕНТИРОВАНО
+      // Если вы установите переменную окружения GOOGLE_APPLICATION_CREDENTIALS,
+      // то можно не передавать credential явно, SDK подхватит его автоматически.
+      // Либо, после получения файла serviceAccountKey.json, раскомментируйте строку выше 
+      // и убедитесь, что serviceAccount импортирован правильно.
     });
   }
 } catch (error) {
   console.error("Ошибка инициализации Firebase Admin SDK:", error);
-  process.exit(1); // Завершаем процесс, так как без Firebase сервер не имеет смысла
+  // Можно добавить process.exit(1); если без Firebase сервер не имеет смысла
 }
 
 const db = getFirestore();
@@ -97,6 +94,7 @@ const getUserPackages = async (userId) => {
   try {
     const packagesSnapshot = await db.collection('packages')
       .where('userId', '==', userId)
+      .where('archived', '==', false)
       .get();
     
     return packagesSnapshot.docs.map(doc => ({

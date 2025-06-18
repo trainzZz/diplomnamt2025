@@ -491,6 +491,19 @@ function AuthPage({ onLogin }) {
   const [resetSuccess, setResetSuccess] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
 
+  const [isPasswordValid, setIsPasswordValid] = useState(false);
+  const [isConfirmValid, setIsConfirmValid] = useState(false);
+
+  // Функция проверки пароля
+  const validatePassword = (password) => {
+    // Не менее 8 символов, минимум одна цифра, минимум один спецсимвол, только латиница
+    const length = password.length >= 8;
+    const hasNumber = /\d/.test(password);
+    const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+/.test(password);
+    const noCyrillic = !/[а-яёА-ЯЁ]/.test(password);
+    return length && hasNumber && hasSpecial && noCyrillic;
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -524,8 +537,15 @@ function AuthPage({ onLogin }) {
         }
       } else {
         // Процесс регистрации
+        if (!validatePassword(formData.password)) {
+          setPasswordError('Пароль должен быть не менее 8 символов, содержать цифру, спецсимвол и не содержать русские буквы');
+          setIsLoading(false);
+          return;
+        }
         if (formData.password !== formData.confirmPassword) {
-          throw new Error('Пароли не совпадают');
+          setPasswordError('Пароли не совпадают');
+          setIsLoading(false);
+          return;
         }
         await registerUser(formData.email, formData.password);
         console.log('Успешная регистрация');
@@ -550,6 +570,10 @@ function AuthPage({ onLogin }) {
           errorMessage = isLogin 
             ? 'Пользователь не найден. Возможно, вам нужно зарегистрироваться.' 
             : 'Пользователь не найден';
+          setError(errorMessage);
+          break;
+        case 'auth/invalid-credential':
+          errorMessage = 'Такой учетной записи не существует';
           setError(errorMessage);
           break;
         case 'auth/wrong-password':
@@ -617,6 +641,13 @@ function AuthPage({ onLogin }) {
       setResetLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isLogin) {
+      setIsPasswordValid(validatePassword(formData.password));
+      setIsConfirmValid(formData.password === formData.confirmPassword && formData.confirmPassword.length > 0);
+    }
+  }, [formData, isLogin]);
 
   useEffect(() => {
     return () => clearTimeout();
@@ -701,6 +732,7 @@ function AuthPage({ onLogin }) {
                     onChange={handleChange}
                     placeholder="Введите пароль"
                     required 
+                    style={(!isLogin && formData.password && !isPasswordValid) ? { borderColor: '#ff5555' } : {}}
                   />
                   <PasswordToggleButton 
                     type="button"
@@ -720,20 +752,20 @@ function AuthPage({ onLogin }) {
                     )}
                   </PasswordToggleButton>
                 </PasswordInputContainer>
+                {/* Forgot password link for login mode */}
                 {isLogin && (
                   <ForgotPasswordLink type="button" onClick={() => setShowResetModal(true)}>
                     Забыли пароль?
                   </ForgotPasswordLink>
                 )}
-                
-                {passwordError && (
+                {!isLogin && formData.password && !isPasswordValid && (
                   <PasswordErrorMessage>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
                       <path d="M12 7V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                       <circle cx="12" cy="16" r="1" fill="currentColor"/>
                     </svg>
-                    {passwordError}
+                    Пароль должен быть не менее 8 символов, содержать цифру, спецсимвол и не содержать русские буквы
                   </PasswordErrorMessage>
                 )}
               </FormGroup>
@@ -756,6 +788,7 @@ function AuthPage({ onLogin }) {
                       onChange={handleChange}
                       placeholder="Подтвердите пароль"
                       required 
+                      style={formData.confirmPassword && !isConfirmValid ? { borderColor: '#ff5555' } : {}}
                     />
                     <PasswordToggleButton 
                       type="button"
@@ -775,6 +808,16 @@ function AuthPage({ onLogin }) {
                       )}
                     </PasswordToggleButton>
                   </PasswordInputContainer>
+                  {formData.confirmPassword && !isConfirmValid && (
+                    <PasswordErrorMessage>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M12 7V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                      </svg>
+                      Пароли не совпадают
+                    </PasswordErrorMessage>
+                  )}
                 </FormGroup>
               )}
               
@@ -782,7 +825,11 @@ function AuthPage({ onLogin }) {
             </FormContent>
             
             <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'center' }}>
-              <SubmitButton type="submit" disabled={isLoading}>
+              <SubmitButton
+                type="submit"
+                disabled={isLoading || (!isLogin && (!isPasswordValid || !isConfirmValid))}
+                style={!isLogin && (!isPasswordValid || !isConfirmValid) ? { opacity: 0.5, cursor: 'not-allowed', filter: 'grayscale(0.5)' } : {}}
+              >
                 {isLoading ? 'Загрузка...' : (isLogin ? 'Войти' : 'Зарегистрироваться')}
               </SubmitButton>
             </div>
@@ -849,7 +896,7 @@ function AuthPage({ onLogin }) {
             </SubmitButton>
             
             <SwitchModeButton onClick={() => setShowResetModal(false)}>
-              Вернуться к форме входа
+              Назад
             </SwitchModeButton>
           </Form>
         </ModalContent>

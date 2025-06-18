@@ -89,6 +89,21 @@ const CodeDisplayContainer = styled.div`
   margin-bottom: 10px;
 `;
 
+const TelegramConnectContainer = styled.div`
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  background: #23232e;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  padding: 32px;
+  @media (max-width: 600px) {
+    max-width: 98vw;
+    padding: 14px 4vw 18px 4vw;
+    border-radius: 10px;
+  }
+`;
+
 const TelegramConnect = ({ userId, onSuccess }) => {
     const [verificationCode, setVerificationCode] = useState('');
     const [isCodeGenerated, setIsCodeGenerated] = useState(false);
@@ -198,7 +213,7 @@ const TelegramConnect = ({ userId, onSuccess }) => {
     };
 
     return (
-        <div className="telegram-connect" style={{ width: '100%', maxWidth: 400, margin: '0 auto', background: '#23232e', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.18)', padding: 32 }}>
+        <TelegramConnectContainer>
             <h2 style={{ textAlign: 'center', marginBottom: 20, color: '#fff', fontWeight: 700 }}>Подключение Telegram</h2>
             {!isCodeGenerated ? (
                 <StyledButton 
@@ -249,7 +264,7 @@ const TelegramConnect = ({ userId, onSuccess }) => {
                     {error}
                 </div>
             )}
-        </div>
+        </TelegramConnectContainer>
     );
 };
 

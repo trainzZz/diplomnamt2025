@@ -30,6 +30,13 @@ const ProfileContainer = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
+  width: 100vw;
+  overflow-x: hidden;
+  @media (max-width: 600px) {
+    width: 100vw;
+    min-width: 0;
+    padding: 0;
+  }
   
   &::before {
     content: '';
@@ -52,6 +59,11 @@ const Content = styled.div`
   z-index: 1;
   animation: ${fadeUp} 0.6s ease-out;
   flex: 1;
+  width: 100%;
+  @media (max-width: 600px) {
+    padding: 24px 2vw 0 2vw;
+    max-width: 100vw;
+  }
 `;
 
 const Title = styled.h1`
@@ -80,12 +92,21 @@ const ProfileCard = styled.div`
   border-radius: var(--border-radius);
   box-shadow: var(--elevation-2);
   padding: 30px;
-  margin: 30px 0;
+  margin: 30px auto;
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(142, 36, 170, 0.2);
   animation: ${fadeUp} 0.6s ease-out;
-  
+  max-width: 600px;
+  width: 100%;
+  min-width: 0;
+  @media (max-width: 600px) {
+    max-width: 100vw;
+    min-width: 0;
+    padding: 18px 2vw;
+    margin: 16px 0;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+  }
   &::before {
     content: '';
     position: absolute;
@@ -210,11 +231,18 @@ const Input = styled.input`
   font-size: 16px;
   color: var(--text-color);
   font-family: 'Montserrat', sans-serif;
-  
+  transition: background 0.2s, border 0.2s;
   &:focus {
     border-color: var(--primary-color);
     outline: none;
     box-shadow: 0 0 0 3px rgba(142, 36, 170, 0.25);
+  }
+  &:disabled {
+    background: #23232b !important;
+    color: #888 !important;
+    cursor: not-allowed;
+    border: 1.5px solid #444 !important;
+    opacity: 1;
   }
 `;
 
@@ -247,20 +275,22 @@ const SaveButton = styled.button`
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: white;
   border: none;
-  padding: 12px 24px;
+  padding: 16px 0;
   border-radius: var(--border-radius);
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: 180px;
+  margin-left: 16px;
   box-shadow: 0 4px 15px rgba(142, 36, 170, 0.3);
   font-family: 'Montserrat', sans-serif;
-  min-width: 150px;
-  
-  &:hover {
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-color) 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(142, 36, 170, 0.5);
+  &:disabled {
+    background: #444 !important;
+    color: #aaa !important;
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 1;
   }
 `;
 
@@ -490,14 +520,22 @@ const AdminPanelButton = styled(Link)`
   }
 `;
 
+const EmptyMessage = styled.div`
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 20px;
+  font-size: 16px;
+`;
+
 function ProfilePage({ onLogout, isAdmin }) {
   const [packages, setPackages] = useState([]);
-  
+  const [filteredPackages, setFilteredPackages] = useState([]);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [showArchived, setShowArchived] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [newPackage, setNewPackage] = useState({ trackingNumber: '', description: '' });
   const [isLoading, setIsLoading] = useState(false);
-  const [filteredPackages, setFilteredPackages] = useState(packages);
   const [isEditing, setIsEditing] = useState(false);
   const [userData, setUserData] = useState({
     fullName: '',
@@ -509,7 +547,6 @@ function ProfilePage({ onLogout, isAdmin }) {
   });
   
   // Новые состояния
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isProfileSetupRequired, setIsProfileSetupRequired] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -599,7 +636,7 @@ function ProfilePage({ onLogout, isAdmin }) {
           const userPackages = await getUserPackages(user.uid);
           if (userPackages) {
             setPackages(userPackages);
-            setFilteredPackages(userPackages);
+            setFilteredPackages(userPackages.filter(pkg => pkg.archived === showArchived));
           }
         }
       } catch (error) {
@@ -610,7 +647,7 @@ function ProfilePage({ onLogout, isAdmin }) {
     };
     
     loadUserData();
-  }, []);
+  }, [showArchived]);
 
   useEffect(() => {
     // Фильтрация посылок при изменении searchTerm
@@ -918,6 +955,38 @@ function ProfilePage({ onLogout, isAdmin }) {
     setShowMap(false);
   };
 
+  const isProfileFormValid =
+    editedData.fullName &&
+    editedData.phone &&
+    editedData.email &&
+    editedData.address;
+
+  const fetchUserPackages = async () => {
+    try {
+      setIsLoadingProfile(true);
+      const userPackages = await getUserPackages(auth.currentUser.uid);
+      setPackages(userPackages);
+      setFilteredPackages(userPackages.filter(pkg => pkg.archived === showArchived));
+    } catch (error) {
+      console.error('Ошибка при загрузке посылок:', error);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserPackages();
+  }, [showArchived]);
+
+  const handleArchiveToggle = () => {
+    fetchUserPackages();
+  };
+
+  // Добавляем переключатель для отображения архивных посылок
+  const toggleArchivedView = () => {
+    setShowArchived(!showArchived);
+  };
+
   if (isLoadingProfile) {
     return (
       <ProfileContainer>
@@ -1146,7 +1215,7 @@ function ProfilePage({ onLogout, isAdmin }) {
               
               <FormGroup>
                 <Label htmlFor="address">Адрес</Label>
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Input
                     type="text"
                     id="address"
@@ -1156,24 +1225,29 @@ function ProfilePage({ onLogout, isAdmin }) {
                     placeholder="Введите ваш адрес или выберите на карте"
                     required
                     style={{ flex: 1 }}
+                    disabled
                   />
                   <button
                     type="button"
-                    style={{
-                      background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%)',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 'var(--border-radius)',
-                      padding: '0 18px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      fontFamily: 'Montserrat, sans-serif',
-                      fontSize: 15,
-                      boxShadow: '0 4px 15px rgba(142, 36, 170, 0.3)'
-                    }}
                     onClick={() => setShowMap(true)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '50%',
+                      transition: 'background-color 0.2s',
+                      color: 'var(--primary-color)'
+                    }}
+                    title="Изменить адрес"
                   >
-                    Добавить
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                   </button>
                 </div>
               </FormGroup>
@@ -1184,7 +1258,7 @@ function ProfilePage({ onLogout, isAdmin }) {
                     Отмена
                   </CancelButton>
                 )}
-                <SaveButton type="submit" disabled={isLoading}>
+                <SaveButton type="submit" disabled={isLoading || !isProfileFormValid}>
                   {isLoading ? 'Сохранение...' : 'Сохранить'}
                 </SaveButton>
               </FormActions>
