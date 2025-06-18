@@ -592,7 +592,9 @@ function AdminPackagesPage() {
         description: formData.description,
         weight: formData.weight,
         dimensions: formData.dimensions,
-        status: formData.status
+        status: formData.status,
+        archived: formData.status === 'delivered',
+        permanentlyArchived: formData.status === 'delivered'
       });
       setFormData({
         trackingNumber: '',

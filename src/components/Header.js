@@ -13,6 +13,10 @@ const HeaderContainer = styled.header`
   z-index: 100;
   transition: all 0.3s ease;
   border-bottom: 1px solid rgba(142, 36, 170, 0.2);
+  ${props => props.$scrolled && `
+    background-color: rgba(29, 29, 29, 0.95);
+    box-shadow: var(--elevation-3);
+  `}
   @media (max-width: 700px) {
     padding: 8px 0;
     width: 100vw;
@@ -238,7 +242,7 @@ function Header({ isAuthenticated, onLogout, isAdmin }) {
 
   return (
     <div>
-      <HeaderContainer scrolled={scrolled}>
+      <HeaderContainer $scrolled={scrolled}>
         <Nav>
           <Logo to="/">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

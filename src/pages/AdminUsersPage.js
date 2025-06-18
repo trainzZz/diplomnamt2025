@@ -799,6 +799,42 @@ function AdminUsersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Модальное окно подтверждения удаления */}
+        <Modal show={showConfirmDialog}>
+          <ModalContent>
+            <ModalHeader>
+              <h2>Подтверждение удаления</h2>
+              <CloseButton onClick={() => {
+                setShowConfirmDialog(false);
+                setUserToDelete(null);
+              }}>×</CloseButton>
+            </ModalHeader>
+            <div style={{ marginBottom: 20 }}>
+              <p>Вы действительно хотите удалить пользователя {userToDelete?.fullName || userToDelete?.email}?</p>
+              <p style={{ color: 'var(--error-color)', marginTop: 10 }}>Это действие нельзя отменить.</p>
+            </div>
+            <div className="admin-form-actions">
+              <button 
+                type="button" 
+                className="admin-btn admin-form-cancel" 
+                onClick={() => {
+                  setShowConfirmDialog(false);
+                  setUserToDelete(null);
+                }}
+              >
+                Отмена
+              </button>
+              <button 
+                type="button" 
+                className="admin-btn admin-btn-delete"
+                onClick={confirmDelete}
+              >
+                Удалить
+              </button>
+            </div>
+          </ModalContent>
+        </Modal>
       </AdminPanelContainer>
       <Footer />
     </div>

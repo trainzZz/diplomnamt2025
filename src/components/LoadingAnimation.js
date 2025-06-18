@@ -6,7 +6,7 @@ const LoadingWrapper = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: ${props => props.fullHeight ? '70vh' : '200px'};
+  min-height: ${props => props.$fullHeight ? '70vh' : '200px'};
   width: 100%;
 `;
 
@@ -26,7 +26,7 @@ const PulsesContainer = styled.div`
 
 function LoadingAnimation({ text = 'Загрузка', fullHeight = false }) {
   return (
-    <LoadingWrapper className="loading-container" fullHeight={fullHeight}>
+    <LoadingWrapper className="loading-container" $fullHeight={fullHeight}>
       <div className="loading-spinner"></div>
       <LoadingText className="loading-text">{text}</LoadingText>
       <PulsesContainer className="loading-pulses">

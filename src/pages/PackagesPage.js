@@ -1126,7 +1126,7 @@ const PackageItem = ({ packageData, onDelete, onEdit, onRestore, archived }) => 
             </IconNotifButton>
           </>
         )}
-        {archived && !packageData.permanentlyArchived && (
+        {archived && !packageData.permanentlyArchived && packageData.status !== 'delivered' && packageData.status !== 'Delivered' && (
           <IconNotifButton onClick={() => onRestore && onRestore(packageData.id)} title="Восстановить">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#fff" strokeWidth="2">
               <path d="M8 20L16 12L24 20" stroke="#00e676" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
